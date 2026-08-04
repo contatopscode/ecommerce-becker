@@ -1,0 +1,4 @@
+# Forçar uso de Dockerfile
+build_method=dockerfile
+dockerfile_path=apps/web/Dockerfile
+build_context=.
