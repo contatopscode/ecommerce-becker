@@ -1,6 +1,10 @@
-FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+FROM node:20-bookworm-slim AS base
 WORKDIR /app
+
+# Instala dependências de sistema necessárias pro Prisma (libssl)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Garante pnpm 9 (compatível com Node 20)
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
@@ -10,7 +14,6 @@ RUN pnpm --version
 
 # ---- Deps ----
 FROM base AS deps
-# Copia config files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc* ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
@@ -18,13 +21,10 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/types/package.json ./packages/types/
-
-# NÃO usa --frozen-lockfile (lockfile pode ser de versão diferente)
 RUN pnpm install --no-frozen-lockfile
 
 # ---- Build ----
 FROM base AS builder
-# Copia config files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc* ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
@@ -32,23 +32,18 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/types/package.json ./packages/types/
-
-# Instala deps (gera node_modules completo)
 RUN pnpm install --no-frozen-lockfile
-
-# Copia o resto do código
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Gera Prisma Client (agora com prisma disponível)
 RUN pnpm --filter @becker/db generate
-
-# Build Next.js
 RUN cd apps/web && pnpm build
 
 # ---- Runner ----
-FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat
+FROM node:20-bookworm-slim AS runner
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
