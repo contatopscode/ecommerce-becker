@@ -6,7 +6,7 @@ import { PageShell } from '@/components/PageShell';
 import { ProductCard } from '@/components/ProductCard';
 import { fetchProducts } from '@/lib/products';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function OfertasPage() {
   const all = await fetchProducts({ take: 50 });

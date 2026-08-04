@@ -9,7 +9,7 @@ import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
 import { fetchProducts, fetchCategories } from '@/lib/products';
 
-export const revalidate = 60; // ISR: revalidar a cada 60s
+export const dynamic = 'force-dynamic'; // ISR: revalidar a cada 60s
 
 export default async function HomePage() {
   const [categories, topProducts, featured, eco] = await Promise.all([

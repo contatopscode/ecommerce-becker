@@ -10,7 +10,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { fetchProducts, fetchCategories, fetchCategoryBySlug } from '@/lib/products';
 import { CategorySort } from './CategorySort';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;

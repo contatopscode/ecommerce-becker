@@ -12,7 +12,7 @@ import { ProductClient } from './ProductClient';
 import { fetchProductBySlug, fetchRelatedProducts } from '@/lib/products';
 import { prisma } from '@becker/db';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
