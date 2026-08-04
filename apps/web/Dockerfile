@@ -2,23 +2,26 @@ FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Garante pnpm 9.x (compatível com Node 20)
+# Garante pnpm 9 (compatível com Node 20)
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 RUN pnpm --version
 
 # ---- Deps ----
 FROM base AS deps
-# Copia arquivos de workspace
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+# Copia config files
+COPY package.json pnpm-workspace.yaml .npmrc* ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/types/package.json ./packages/types/
-RUN pnpm install --frozen-lockfile
+
+# NÃO usa --frozen-lockfile (lockfile pode ser de versão diferente)
+# Instala deps (regenera o lockfile se necessário)
+RUN pnpm install --no-frozen-lockfile
 
 # ---- Build ----
 FROM base AS builder
