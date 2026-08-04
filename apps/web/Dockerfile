@@ -1,3 +1,4 @@
+# Force rebuild 2026-08-04 19:31
 FROM node:20-bookworm-slim AS base
 WORKDIR /app
 
