@@ -7,7 +7,7 @@ import { prisma } from '@becker/db';
 export async function fetchCategories() {
   return prisma.category.findMany({
     where: { active: true },
-    orderBy: { order: 'asc' },
+    orderBy: { displayOrder: 'asc' },
   });
 }
 
@@ -51,7 +51,7 @@ export async function fetchProducts(opts?: {
     take: opts?.take,
     include: {
       category: { select: { id: true, slug: true, name: true, icon: true, color: true } },
-      images: { orderBy: { order: 'asc' } },
+      images: { orderBy: { displayOrder: 'asc' } },
       versions: { where: { active: true }, orderBy: { price: 'asc' } },
     },
   });
@@ -84,7 +84,7 @@ export async function fetchProductBySlug(slug: string) {
     where: { slug },
     include: {
       category: true,
-      images: { orderBy: { order: 'asc' } },
+      images: { orderBy: { displayOrder: 'asc' } },
       versions: { where: { active: true }, orderBy: { price: 'asc' } },
     },
   });

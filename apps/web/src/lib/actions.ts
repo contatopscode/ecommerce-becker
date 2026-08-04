@@ -40,7 +40,7 @@ export async function fetchProducts(params: {
     take: params.take,
     include: {
       category: { select: { id: true, slug: true, name: true, icon: true } },
-      images: { orderBy: { order: 'asc' } },
+      images: { orderBy: { displayOrder: 'asc' } },
       versions: { where: { active: true }, orderBy: { price: 'asc' } },
     },
   });
@@ -51,7 +51,7 @@ export async function fetchProductBySlug(slug: string) {
     where: { slug },
     include: {
       category: true,
-      images: { orderBy: { order: 'asc' } },
+      images: { orderBy: { displayOrder: 'asc' } },
       versions: { where: { active: true }, orderBy: { price: 'asc' } },
     },
   });
@@ -63,7 +63,7 @@ export async function fetchRelatedProducts(productId: string, categoryId: string
     take: 4,
     include: {
       category: { select: { id: true, slug: true, name: true } },
-      images: { orderBy: { order: 'asc' } },
+      images: { orderBy: { displayOrder: 'asc' } },
       versions: { where: { active: true }, orderBy: { price: 'asc' } },
     },
   });
@@ -72,7 +72,7 @@ export async function fetchRelatedProducts(productId: string, categoryId: string
 export async function fetchCategories() {
   return prisma.category.findMany({
     where: { active: true },
-    orderBy: { order: 'asc' },
+    orderBy: { displayOrder: 'asc' },
   });
 }
 
