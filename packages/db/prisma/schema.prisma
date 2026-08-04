@@ -1,0 +1,278 @@
+// ============================================================
+// Becker E-commerce - Prisma Schema
+// Banco: PostgreSQL 17 (VPS)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USERS ============
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  whatsapp     String    @unique
+  email        String?   @unique
+  cpfCnpj      String?   @unique
+  passwordHash String?
+  role         Role      @default(CUSTOMER)
+  addresses    Address[]
+  orders       Order[]
+  reviews      Review[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([whatsapp])
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// ============ CATEGORIES ============
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  order       Int       @default(0)
+  products    Product[]
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ============ PRODUCTS ============
+model Product {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  sku             String           @unique
+  name            String
+  description     String           @db.Text
+  shortDescription String?
+  brand           String           @default("Becker")
+  categoryId      String
+  category        Category         @relation(fields: [categoryId], references: [id])
+  isEco           Boolean          @default(false)
+  isFeatured      Boolean          @default(false)
+  isTop           Boolean          @default(false)
+  isNew           Boolean          @default(false)
+  active          Boolean          @default(true)
+  rating          Float            @default(0)
+  reviewCount     Int              @default(0)
+  highlights      String[]
+  images          ProductImage[]
+  versions        ProductVersion[]
+  reviews         Review[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isTop])
+  @@index([isFeatured])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  order     Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  @@index([productId])
+}
+
+model ProductVersion {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku           String   @unique
+  label         String   // ex: "500ml Lavanda", "3L"
+  price         Decimal  @db.Decimal(10, 2)
+  originalPrice Decimal? @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  weight        Int?     // gramas
+  height        Int?     // mm
+  width         Int?     // mm
+  length        Int?     // mm
+  barcode       String?
+  active        Boolean  @default(true)
+
+  @@index([productId])
+}
+
+// ============ ADDRESSES ============
+model Address {
+  id         String  @id @default(cuid())
+  userId     String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cep        String
+  street     String
+  number     String
+  complement String?
+  district   String
+  city       String
+  state      String
+  isDefault  Boolean @default(false)
+  orders     Order[]
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ============ ORDERS ============
+model Order {
+  id             String         @id @default(cuid())
+  number         String         @unique // BKR-202608-000123
+  userId         String?
+  user           User?          @relation(fields: [userId], references: [id])
+  guestEmail     String?
+  guestWhatsapp  String?
+
+  items          OrderItem[]
+  addressId      String?
+  address        Address?       @relation(fields: [addressId], references: [id])
+
+  subtotal       Decimal        @db.Decimal(10, 2)
+  shipping       Decimal        @db.Decimal(10, 2)
+  discount       Decimal        @default(0) @db.Decimal(10, 2)
+  total          Decimal        @db.Decimal(10, 2)
+
+  status         OrderStatus    @default(PENDING)
+  paymentStatus  PaymentStatus  @default(PENDING)
+  source         OrderSource    @default(WEBSITE)
+
+  paymentId      String?        // ID do Mercado Pago
+  paymentMethod  String?        // pix, credit_card, boleto
+  tracking       String?
+  shippingMethod String?        // PAC, SEDEX, free
+
+  notes          String?
+  paidAt         DateTime?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  cancelledAt    DateTime?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([number])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING       // Aguardando pagamento
+  PAID          // Pago
+  PROCESSING    // Em separação
+  SHIPPED       // Enviado
+  DELIVERED     // Entregue
+  CANCELLED     // Cancelado
+  REFUNDED      // Reembolsado
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderSource {
+  WEBSITE
+  WHATSAPP
+  ADMIN
+  PHONE
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  productName  String  // snapshot
+  versionId    String
+  versionLabel String  // snapshot
+  sku          String
+  price        Decimal @db.Decimal(10, 2)
+  qty          Int
+  total        Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+}
+
+// ============ COUPONS ============
+model Coupon {
+  id        String       @id @default(cuid())
+  code      String       @unique
+  type      CouponType
+  discount  Float        // % ou R$
+  minOrder  Float        @default(0)
+  maxUses   Int?
+  usedCount Int          @default(0)
+  expiresAt DateTime?
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+  FREE_SHIPPING
+}
+
+// ============ REVIEWS ============
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int      // 1-5
+  title     String?
+  comment   String?
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, userId])
+  @@index([productId])
+}
+
+// ============ WHATSAPP CONVERSATIONS ============
+model WhatsAppConversation {
+  id            String    @id @default(cuid())
+  phone         String
+  customerName  String?
+  messages      Json      // array de mensagens
+  context       Json?     // estado do bot (qual fluxo está)
+  resolved      Boolean   @default(false)
+  humanTakeover Boolean   @default(false)
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  @@index([phone])
+  @@index([lastMessageAt])
+}
+
+// ============ NEWSLETTER ============
+model Newsletter {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

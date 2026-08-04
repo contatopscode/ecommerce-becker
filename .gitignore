@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS
+.directory
+
+# Vercel
+.vercel
+
+# Prisma
+packages/db/prisma/migrations/dev.db*
+
+# Misc
+.cache/
+.parcel-cache/
+.turbo/
+coverage/
+.eslintcache
+.pnp.*
+
+# Test artifacts
+playwright-report/
+test-results/
+.env

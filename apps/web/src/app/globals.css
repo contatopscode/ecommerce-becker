@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-becker-cream text-becker-ink antialiased;
+  }
+}
+
+@layer utilities {
+  .display {
+    font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  .product-img {
+    background: linear-gradient(180deg, #fff 0%, #f6f4ff 100%);
+  }
+  .gradient-purple {
+    background: radial-gradient(120% 100% at 0% 0%, #4A3AC4 0%, #3B2DA8 40%, #2A1F7A 100%);
+  }
+  .gradient-orange {
+    background: radial-gradient(120% 100% at 100% 0%, #FF8A5C 0%, #FF6B35 50%, #E04E1A 100%);
+  }
+  .dotted-bg {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .glass {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.78);
+  }
+  .tilt-on-hover {
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
+  }
+  .tilt-on-hover:hover {
+    transform: translateY(-4px);
+  }
+  .pulse-dot {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.15);
+    }
+  }
+  .fade-in {
+    animation: fadeIn 0.6s ease both;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

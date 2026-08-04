@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local", ".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "EVOLUTION_API_URL",
+    "EVOLUTION_API_KEY",
+    "EVOLUTION_INSTANCE",
+    "SITE_DOMAIN",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "OPENAI_API_KEY",
+    "MERCADO_PAGO_TOKEN"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "type-check": {
+      "dependsOn": ["^build"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
