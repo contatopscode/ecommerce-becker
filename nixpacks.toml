@@ -1,0 +1,17 @@
+# Nixpacks config for Becker E-commerce
+# Mais simples que Dockerfile, detecta Next.js automaticamente
+
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "openssl"]
+
+[phases.install]
+cmds = ["corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --no-frozen-lockfile"]
+
+[phases.build]
+cmds = [
+  "pnpm --filter @becker/db generate",
+  "cd apps/web && pnpm build"
+]
+
+[start]
+cmd = "cd apps/web && npx next start -p 3000 -H 0.0.0.0"
