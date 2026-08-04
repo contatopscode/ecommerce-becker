@@ -11,7 +11,7 @@ RUN pnpm --version
 # ---- Deps ----
 FROM base AS deps
 # Copia config files
-COPY package.json pnpm-workspace.yaml .npmrc* ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc* ./
 COPY apps/web/package.json ./apps/web/
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/db/package.json ./packages/db/
@@ -20,16 +20,30 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/types/package.json ./packages/types/
 
 # NÃO usa --frozen-lockfile (lockfile pode ser de versão diferente)
-# Instala deps (regenera o lockfile se necessário)
 RUN pnpm install --no-frozen-lockfile
 
 # ---- Build ----
 FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+# Copia config files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc* ./
+COPY apps/web/package.json ./apps/web/
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/db/package.json ./packages/db/
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/ui/package.json ./packages/ui/
+COPY packages/types/package.json ./packages/types/
+
+# Instala deps (gera node_modules completo)
+RUN pnpm install --no-frozen-lockfile
+
+# Copia o resto do código
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Gera Prisma Client (agora com prisma disponível)
 RUN pnpm --filter @becker/db generate
+
+# Build Next.js
 RUN cd apps/web && pnpm build
 
 # ---- Runner ----
