@@ -12,7 +12,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useCart, toast, formatPrice } from '@/lib/cart';
+import { useCart, toast } from '@/lib/cart';
+import { formatPrice } from '@/lib/utils';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -99,7 +100,10 @@ export default function CheckoutPage() {
   }, [cart.items.length]);
 
   // Calcula totais
-  const subtotal = cart.total;
+  const subtotal = useMemo(
+    () => cart.items.reduce((sum, i) => sum + (i.price || 0) * i.qty, 0),
+    [cart.items]
+  );
   const shipping = shippingOption?.price || 0;
   const discount = cupomApplied ? (subtotal * cupomApplied.discount / 100) : 0;
   const total = subtotal - discount + shipping;
