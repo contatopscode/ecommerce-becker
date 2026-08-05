@@ -24,6 +24,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Dados incompletos' }, { status: 400 });
     }
 
+    // Validar paymentMethod (não pode ser inválido)
+    const validPaymentMethods = ['pix', 'credit_card'];
+    const safePaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : 'pix';
+
+    // Validar shippingMethod (deve ser do enum)
+    const shippingMap: Record<string, 'free' | 'pac' | 'sedex'> = {
+      free: 'free',
+      standard: 'pac',
+      express: 'sedex',
+    };
+    const safeShippingMethod = shippingMap[shipping?.id] || 'free';
+
     // Calcular totais
     const versionIds = items.map((i: any) => i.versionId);
     const versions = await prisma.productVersion.findMany({
@@ -144,12 +156,9 @@ export async function POST(req: NextRequest) {
         total,
         status: 'PENDING',
         paymentStatus: 'PENDING',
-        paymentMethod,
+        paymentMethod: safePaymentMethod,
         source: 'SITE',
-        shippingMethod: (shipping?.id === 'free' ? 'free' :
-                        shipping?.id === 'express' ? 'sedex' :
-                        shipping?.id === 'standard' ? 'pac' :
-                        'free') as any,
+        shippingMethod: safeShippingMethod,
         items: { create: orderItems.map((i) => ({ ...i, id: randomBytes(12).toString('hex') })) },
       },
     });
