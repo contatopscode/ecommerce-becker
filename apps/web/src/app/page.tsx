@@ -264,7 +264,7 @@ export default async function HomePage() {
       </section>
 
       {/* PWA Install hint */}
-      <section className="max-w-7xl mx-auto px-4 pb-16">
+      <section className="max-w-7xl mx-auto px-4 mt-12 pb-16">
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-white rounded-3xl border border-becker-line p-8 flex flex-col sm:flex-row items-center gap-6">
             <div className="text-7xl">⚡</div>

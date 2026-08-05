@@ -1,0 +1,139 @@
+'use client';
+
+import { useState } from 'react';
+import { toast } from '@/lib/cart';
+
+interface Setting {
+  key: string;
+  value: string;
+  category: string;
+  label: string;
+  type: string;
+}
+
+const CATEGORIES = {
+  shipping: { label: '🚚 Frete e Entrega', icon: '🚚' },
+  promo: { label: '🎁 Promoções', icon: '🎁' },
+  integrations: { label: '🔌 Integrações', icon: '🔌' },
+  general: { label: '⚙️ Geral', icon: '⚙️' },
+};
+
+export function ConfigForm({ settings, session }: { settings: Setting[]; session: any }) {
+  const [values, setValues] = useState<Record<string, string>>(
+    Object.fromEntries(settings.map((s) => [s.key, s.value]))
+  );
+  const [saving, setSaving] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('shipping');
+
+  const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
+    const cat = s.category || 'general';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(s);
+    return acc;
+  }, {});
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/settings/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: values }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast('Configurações salvas ✓', 'success');
+      } else {
+        toast(data.error || 'Erro', 'error');
+      }
+    } catch {
+      toast('Erro de conexão', 'error');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="grid lg:grid-cols-4 gap-6">
+      {/* Tabs verticais */}
+      <div className="space-y-1">
+        {Object.entries(CATEGORIES).map(([key, info]) => (
+          <button
+            key={key}
+            onClick={() => setActiveCategory(key)}
+            className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm ${
+              activeCategory === key
+                ? 'bg-becker-purple text-white'
+                : 'bg-white border border-becker-line hover:border-becker-purple/30'
+            }`}
+          >
+            {info.label}
+          </button>
+        ))}
+
+        <div className="mt-6 p-4 bg-white border border-becker-line rounded-xl text-xs">
+          <div className="text-becker-slate font-semibold mb-1">Sessão atual</div>
+          <div className="font-bold">{session?.name}</div>
+          <div className="text-becker-slate">{session?.whatsapp}</div>
+          <div className="mt-1 inline-block text-[10px] font-bold bg-becker-purple text-white px-2 py-0.5 rounded">
+            {session?.role}
+          </div>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="lg:col-span-3 bg-white rounded-2xl border border-becker-line p-6">
+        <h2 className="text-xl font-extrabold mb-4">
+          {CATEGORIES[activeCategory as keyof typeof CATEGORIES]?.label}
+        </h2>
+
+        {activeCategory === 'integrations' && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+            💡 Após preencher, clique em <strong>Salvar tudo</strong>. Os tokens ficam criptografados no banco.
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {(grouped[activeCategory] || []).map((s) => (
+            <div key={s.key}>
+              <label className="block text-sm font-semibold mb-1">{s.label}</label>
+              {s.type === 'boolean' ? (
+                <select
+                  value={values[s.key] || 'false'}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  className="w-full border-2 border-becker-line rounded-xl px-3 py-2 focus:border-becker-purple outline-none"
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              ) : s.type === 'text' && s.key.includes('token') ? (
+                <input
+                  type="password"
+                  value={values[s.key] || ''}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full border-2 border-becker-line rounded-xl px-3 py-2 focus:border-becker-purple outline-none font-mono"
+                />
+              ) : (
+                <input
+                  type={s.type === 'number' ? 'number' : 'text'}
+                  value={values[s.key] || ''}
+                  onChange={(e) => setValues({ ...values, [s.key]: e.target.value })}
+                  className="w-full border-2 border-becker-line rounded-xl px-3 py-2 focus:border-becker-purple outline-none"
+                />
+              )}
+              <p className="text-[10px] text-becker-slate mt-1 font-mono">{s.key}</p>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={save}
+          disabled={saving}
+          className="mt-6 w-full bg-becker-purple text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        >
+          {saving ? 'Salvando...' : 'Salvar configurações'}
+        </button>
+      </div>
+    </div>
+  );
+}
