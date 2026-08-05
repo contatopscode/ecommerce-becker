@@ -330,15 +330,21 @@ export default function CheckoutPage() {
 
   // Salvar automaticamente ao completar cada step
   useEffect(() => {
+    // Step 1: tem whatsapp + nome
     if (step === 1 && onlyDigits(whatsapp).length >= 10 && name.length > 1) {
       const t = setTimeout(() => saveProgress(1), 800);
       return () => clearTimeout(t);
     }
-    if (step === 2 && canProceed()) {
+    // Step 2: tem CEP + rua + número + bairro + cidade + UF
+    if (
+      step === 2 &&
+      onlyDigits(cep).length === 8 &&
+      street && number && neighborhood && city && stateUF
+    ) {
       const t = setTimeout(() => saveProgress(2), 800);
       return () => clearTimeout(t);
     }
-  }, [step, whatsapp, name, cep, street, number, neighborhood, city, stateUF, canProceed, saveProgress]);
+  }, [step, whatsapp, name, cep, street, number, neighborhood, city, stateUF, saveProgress]);
 
   // ============ VALIDAÇÃO POR STEP ============
   const canProceed = () => {
