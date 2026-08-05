@@ -145,7 +145,12 @@ export default function CheckoutPage() {
 
       if (data.ok && data.customer) {
         setCustomer(data.customer);
-        setName(data.customer.name);
+        // Se é lead novo, deixa campo nome vazio pra digitar
+        if (!data.customer.isNewLead) {
+          setName(data.customer.name);
+        } else {
+          setName('');
+        }
         if (data.customer.email) setEmail(data.customer.email);
         if (data.customer.address) {
           setCep(data.customer.address.cep || '');
@@ -156,7 +161,9 @@ export default function CheckoutPage() {
           setCity(data.customer.address.city || '');
           setStateUF(data.customer.address.state || '');
         }
-        if (data.customer.isFirstPurchase) {
+        if (data.customer.isNewLead) {
+          toast('✨ Quase lá! Só falta seu nome pra continuar', 'info');
+        } else if (data.customer.isFirstPurchase) {
           setCupomApplied({ code: 'BEMVINDO15', discount: 15 });
           toast(`🎁 Olá ${data.customer.name.split(' ')[0]}! 15% OFF na primeira compra!`, 'success');
         } else {
@@ -164,10 +171,11 @@ export default function CheckoutPage() {
         }
       } else {
         setCustomer(null);
-        toast('Primeira compra! Ganhe 15% OFF automaticamente 🎁', 'success');
+        toast(data.error || 'Erro ao buscar cliente', 'error');
       }
-    } catch {
-      toast('Erro ao buscar cliente', 'error');
+    } catch (e) {
+      console.error('Erro buscar cliente:', e);
+      toast('Erro de conexão ao buscar cliente', 'error');
     }
     setSearchingCustomer(false);
   }, []);
@@ -265,8 +273,8 @@ export default function CheckoutPage() {
 
       if (data.ok) {
         cart.clear();
-        toast('Pedido criado com sucesso! 🎉', 'success');
-        router.push(`/pedido/${data.orderId}`);
+        toast('Pedido criado! Agora é só pagar 💜', 'success');
+        router.push(`/checkout/pagamento?orderId=${data.orderId}`);
       } else {
         toast(data.error || 'Erro ao criar pedido', 'error');
       }
@@ -631,10 +639,10 @@ export default function CheckoutPage() {
                             if (data.ok) {
                               cart.clear();
                               const msg = encodeURIComponent(
-                                `Oi! Acabei de fazer o pedido *${data.orderNumber}* no site Becker. Pode me ajudar a finalizar?`
+                                `Oi! Acabei de fazer o pedido *${data.orderNumber}* no site Becker. Pode me ajudar a finalizar o pagamento?`
                               );
                               window.open(`https://wa.me/5581999022262?text=${msg}`, '_blank');
-                              router.push(`/pedido/${data.orderId}`);
+                              router.push(`/checkout/pagamento?orderId=${data.orderId}`);
                             } else {
                               toast(data.error || 'Erro', 'error');
                             }
