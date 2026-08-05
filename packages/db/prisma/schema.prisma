@@ -153,7 +153,7 @@ model Order {
 
   status         OrderStatus    @default(PENDING)
   paymentStatus  PaymentStatus  @default(PENDING)
-  source         OrderSource    @default(WEBSITE)
+  source         OrderSource    @default(SITE)
 
   paymentId      String?        // ID do Mercado Pago
   paymentMethod  String?        // pix, credit_card, boleto
@@ -193,11 +193,11 @@ enum PaymentStatus {
 }
 
 enum OrderSource {
-  WEBSITE
+  SITE
   WHATSAPP
   ADMIN
-  PHONE
 }
+
 
 model OrderItem {
   id           String  @id @default(cuid())
@@ -219,7 +219,7 @@ model OrderItem {
 model Coupon {
   id        String       @id @default(cuid())
   code      String       @unique
-  type      CouponType
+  type      String       // percent, fixed, shipping
   discount  Float        // % ou R$
   minOrder  Float        @default(0)
   maxUses   Int?
