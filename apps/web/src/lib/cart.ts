@@ -1,5 +1,6 @@
 // ============================================================
 // Store de carrinho (Zustand com persistência localStorage)
+// Sprint 2: retorna valores computados (não funções) pra reatividade
 // ============================================================
 
 import { create } from 'zustand';
@@ -26,9 +27,6 @@ interface CartState {
   updateQty: (productId: string, versionId: string, qty: number) => void;
   remove: (productId: string, versionId: string) => void;
   clear: () => void;
-  count: () => number;
-  subtotal: () => number;
-  total: (shipping?: number, discount?: number) => number;
 }
 
 export const useCart = create<CartState>()(
@@ -67,15 +65,38 @@ export const useCart = create<CartState>()(
         set({ items: get().items.filter((i) => !(i.productId === productId && i.versionId === versionId)) });
       },
       clear: () => set({ items: [] }),
-      count: () => get().items.reduce((sum, i) => sum + i.qty, 0),
-      subtotal: () =>
-        get().items.reduce((sum, i) => sum + (i.price || 0) * i.qty, 0),
-      total: (shipping = 0, discount = 0) =>
-        Math.max(0, get().subtotal() - discount) + shipping,
     }),
     { name: 'becker-cart' }
   )
 );
+
+// ============ HELPERS (funções puras, fora do store) ============
+
+/** Conta total de itens no carrinho */
+export function getCount(items: CartItem[]): number {
+  return items.reduce((sum, i) => sum + i.qty, 0);
+}
+
+/** Subtotal do carrinho (soma de preço * qty) */
+export function getSubtotal(items: CartItem[]): number {
+  return items.reduce((sum, i) => sum + (i.price || 0) * i.qty, 0);
+}
+
+/** Total com frete e desconto aplicados */
+export function getTotal(items: CartItem[], shipping = 0, discount = 0): number {
+  return Math.max(0, getSubtotal(items) - discount) + shipping;
+}
+
+// ============ HOOKS REATIVOS (subscrevem ao items) ============
+
+/** Hook que retorna count e re-renderiza quando items mudam */
+export function useCartCount(): number {
+  return useCart((s) => getCount(s.items));
+}
+
+export function useCartSubtotal(): number {
+  return useCart((s) => getSubtotal(s.items));
+}
 
 // Toast helper (cliente)
 export function toast(message: string, type: 'success' | 'error' | 'info' = 'info') {

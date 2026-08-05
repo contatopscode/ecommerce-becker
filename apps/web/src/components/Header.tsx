@@ -24,13 +24,14 @@ export function Header() {
   const pathname = usePathname();
   const [search, setSearch] = useState('');
   const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const count = mounted ? cart.count() : 0;
+  const count = useCart((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -11,7 +11,8 @@ import { formatPrice } from '@/lib/utils';
 export default function CartPage() {
   const cart = useCart();
   const items = cart.items;
-  const subtotal = cart.subtotal();
+  const count = items.reduce((sum, i) => sum + i.qty, 0);
+  const subtotal = items.reduce((sum, i) => sum + (i.price || 0) * i.qty, 0);
   const freeShipping = subtotal >= 199;
   const remaining = 199 - subtotal;
 
@@ -32,7 +33,7 @@ export default function CartPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="display text-3xl font-extrabold mb-6">Seu carrinho ({cart.count()})</h1>
+      <h1 className="display text-3xl font-extrabold mb-6">Seu carrinho ({count})</h1>
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           {items.map((item) => (

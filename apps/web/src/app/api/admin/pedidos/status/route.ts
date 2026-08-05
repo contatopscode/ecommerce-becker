@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { getSession } from '@/lib/auth/session';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
+import { notifyOrder } from '@/lib/notify';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,23 +45,24 @@ export async function POST(req: NextRequest) {
       data: updateData,
     });
 
-    // Notifica cliente via WhatsApp (best-effort)
-    const phone = order.user?.whatsapp || order.guestWhatsapp;
-    if (phone) {
-      const messages: Record<string, string> = {
-        PAID: `💰 *Becker* - Pagamento confirmado!\n\nPedido *${order.number}* está sendo preparado.`,
-        PROCESSING: `📦 *Becker* - Em separação!\n\nEstamos separando seu pedido *${order.number}* com carinho.`,
-        SHIPPED: `🚚 *Becker* - Pedido enviado!\n\nPedido *${order.number}* a caminho!\nRastreio: ${updated.tracking || 'em breve'}`,
-        DELIVERED: `✅ *Becker* - Pedido entregue!\n\nEsperamos que tenha gostado! Obrigado por comprar na Becker 💜`,
-        CANCELED: `❌ *Becker* - Pedido cancelado\n\nPedido *${order.number}* foi cancelado. Em caso de dúvidas, é só chamar.`,
-      };
-      const msg = messages[status];
-      if (msg) {
-        try {
-          await sendWhatsApp({ number: phone, text: msg });
-        } catch (e) {
-          console.error('Erro ao notificar cliente:', e);
-        }
+    // Notifica cliente via WhatsApp (Sprint 2: templates padronizados)
+    const eventMap: Record<string, 'payment_approved' | 'preparing' | 'shipped' | 'delivered' | 'cancelled'> = {
+      PAID: 'payment_approved',
+      PROCESSING: 'preparing',
+      SHIPPED: 'shipped',
+      DELIVERED: 'delivered',
+      CANCELLED: 'cancelled',
+    };
+    const event = eventMap[status];
+    if (event) {
+      try {
+        await notifyOrder({
+          orderId: order.id,
+          event,
+          trackingCode: tracking || undefined,
+        });
+      } catch (e) {
+        console.error('Erro ao notificar cliente:', e);
       }
     }
 

@@ -600,13 +600,52 @@ export default function CheckoutPage() {
                       Continuar →
                     </button>
                   ) : (
-                    <button
-                      onClick={submitOrder}
-                      disabled={loading}
-                      className="flex-1 bg-eco-500 text-white font-bold py-3 rounded-xl disabled:opacity-50"
-                    >
-                      {loading ? 'Processando...' : 'Finalizar pedido'}
-                    </button>
+                    <>
+                      <button
+                        onClick={submitOrder}
+                        disabled={loading}
+                        className="flex-1 bg-eco-500 text-white font-bold py-3 rounded-xl disabled:opacity-50"
+                      >
+                        {loading ? 'Processando...' : 'Finalizar pedido'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          // Cria pedido e abre WhatsApp com mensagem
+                          setLoading(true);
+                          try {
+                            const orderData = {
+                              whatsapp: onlyDigits(whatsapp), name, email: email || undefined,
+                              cep: onlyDigits(cep), street, number, complement, neighborhood, city, state: stateUF,
+                              shipping: shippingOption, paymentMethod, cupom: cupomApplied?.code, items: cart.items,
+                            };
+                            const res = await fetch('/api/orders/create', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(orderData),
+                            });
+                            const data = await res.json();
+                            if (data.ok) {
+                              cart.clear();
+                              const msg = encodeURIComponent(
+                                `Oi! Acabei de fazer o pedido *${data.orderNumber}* no site Becker. Pode me ajudar a finalizar?`
+                              );
+                              window.open(`https://wa.me/5581999022262?text=${msg}`, '_blank');
+                              router.push(`/pedido/${data.orderId}`);
+                            } else {
+                              toast(data.error || 'Erro', 'error');
+                            }
+                          } catch {
+                            toast('Erro de conexão', 'error');
+                          }
+                          setLoading(false);
+                        }}
+                        disabled={loading}
+                        className="bg-[#25D366] text-white font-bold py-3 px-4 rounded-xl disabled:opacity-50"
+                        title="Finalizar pelo WhatsApp"
+                      >
+                        💬
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { getSession } from '@/lib/auth/session';
+import { notifyOrder } from '@/lib/notify';
 
 function genOrderNumber() {
   const now = new Date();
@@ -150,17 +151,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Enviar WhatsApp de confirmação
+    // Enviar WhatsApp de confirmação (template padronizado)
     try {
-      const itemsList = orderItems.map((i) => `• ${i.qty}x ${i.productName} (${i.versionLabel})`).join('\n');
-      const msg = `🛒 *Pedido ${order.number}* recebido!\n\n${itemsList}\n\n` +
-                  `Subtotal: R$ ${subtotal.toFixed(2)}\n` +
-                  (discount > 0 ? `Desconto: -R$ ${discount.toFixed(2)}\n` : '') +
-                  `Frete: ${shippingPrice === 0 ? 'Grátis 🎁' : `R$ ${shippingPrice.toFixed(2)}`}\n` +
-                  `*Total: R$ ${total.toFixed(2)}*\n\n` +
-                  `Forma de pagamento: ${paymentMethod === 'pix' ? 'PIX' : 'Cartão'}\n\n` +
-                  `Em instantes você recebe o link para pagamento. 💜`;
-      await sendWhatsApp({ number: whatsapp, text: msg });
+      await notifyOrder({ orderId: order.id, event: 'order_created' });
     } catch (e) {
       console.error('Erro ao enviar WhatsApp:', e);
     }
