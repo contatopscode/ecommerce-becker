@@ -1,16 +1,18 @@
 // ============================================================
-// API: Auto-detectar chat_id
-// GET /api/telegram/setup
-// Quando alguém acessa essa URL, lê os updates do bot
-// e salva o chat_id do primeiro usuário que mandou mensagem
+// API: Setup Telegram (auto-detecta OU configura manualmente)
+// POST /api/telegram/setup
+// Body: { manualChatId?: string, testAfter?: boolean }
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
+import { sendTelegram } from '@/lib/telegram';
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    // Pega token
+    const body = await req.json().catch(() => ({}));
+    const { manualChatId, testAfter } = body;
+
     const tokenSetting = await prisma.setting.findUnique({
       where: { key: 'integrations_telegram_bot_token' },
     });
@@ -18,30 +20,38 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Bot token não configurado' }, { status: 400 });
     }
 
-    // Busca updates (mensagens recebidas pelo bot)
-    const res = await fetch(`https://api.telegram.org/bot${tokenSetting.value}/getUpdates?limit=10`);
-    const data = await res.json();
+    let chatId = manualChatId;
+    let detected = false;
+    let fromName = null;
 
-    if (!data.ok) {
-      return NextResponse.json({ ok: false, error: data.description || 'Erro ao buscar updates' }, { status: 500 });
-    }
-
-    if (data.result.length === 0) {
-      return NextResponse.json({
-        ok: false,
-        error: 'Nenhuma mensagem recebida ainda',
-        hint: 'Mande "oi" pro bot no Telegram primeiro',
-      });
-    }
-
-    // Pega o chat_id do primeiro update
-    const firstUpdate = data.result[0];
-    const chatId = String(firstUpdate.message?.chat?.id || firstUpdate.edited_message?.chat?.id);
-    const fromName = firstUpdate.message?.from?.first_name || 'usuário';
-    const fromUsername = firstUpdate.message?.from?.username;
-
+    // Se não veio manual, tenta auto-detectar
     if (!chatId) {
-      return NextResponse.json({ ok: false, error: 'Update sem chat_id' }, { status: 500 });
+      const res = await fetch(`https://api.telegram.org/bot${tokenSetting.value}/getUpdates?limit=10`);
+      const data = await res.json();
+
+      if (data.ok && data.result && data.result.length > 0) {
+        const firstUpdate = data.result[0];
+        chatId = String(firstUpdate.message?.chat?.id || firstUpdate.edited_message?.chat?.id);
+        fromName = firstUpdate.message?.from?.first_name;
+        detected = true;
+      } else {
+        return NextResponse.json({
+          ok: false,
+          error: 'Nenhuma mensagem encontrada',
+          hint: 'Mande "oi" pro bot @MinimaxPaulo_bot no Telegram primeiro',
+          steps: [
+            '1. Abra o Telegram',
+            '2. Procure por: @MinimaxPaulo_bot',
+            '3. Mande qualquer mensagem (ex: "oi")',
+            '4. Volte aqui e clique em "Detectar" de novo',
+            'OU digite seu chat_id manualmente abaixo',
+          ],
+        });
+      }
+    }
+
+    if (!chatId || !/^-?\d+$/.test(chatId)) {
+      return NextResponse.json({ ok: false, error: 'Chat ID inválido (deve ser numérico, ex: 123456789)' }, { status: 400 });
     }
 
     // Salva no DB
@@ -57,12 +67,56 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Envia mensagem de teste
+    let testSent = false;
+    if (testAfter !== false) {
+      const result = await sendTelegram(
+        `✅ *Becker conectado ao Telegram!*\n\n` +
+        `Chat ID: \`${chatId}\`\n` +
+        (fromName ? `Nome: ${fromName}\n` : '') +
+        `\nDaqui pra frente você vai receber:\n` +
+        `• 🛒 Novos pedidos\n` +
+        `• 💰 Pagamentos confirmados\n` +
+        `• 🚚 Envios\n` +
+        `• 🎯 Leads capturados\n\n` +
+        `Mande "ajuda" pra ver comandos do Q&A bot.`
+      );
+      testSent = result.ok;
+    }
+
     return NextResponse.json({
       ok: true,
       chatId,
+      detected,
       fromName,
-      fromUsername,
-      message: `Chat ID de ${fromName} (${fromUsername || 'sem username'}) salvo!`,
+      testSent,
+      message: detected
+        ? `Chat ID de ${fromName} detectado e salvo! Mensagem de teste enviada.`
+        : `Chat ID ${chatId} salvo manualmente! ${testSent ? 'Mensagem de teste enviada.' : ''}`,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  }
+}
+
+// GET: apenas diagnostica
+export async function GET() {
+  try {
+    const tokenSetting = await prisma.setting.findUnique({
+      where: { key: 'integrations_telegram_bot_token' },
+    });
+    if (!tokenSetting?.value) {
+      return NextResponse.json({ ok: false, error: 'Bot token não configurado' }, { status: 400 });
+    }
+
+    const res = await fetch(`https://api.telegram.org/bot${tokenSetting.value}/getUpdates?limit=10`);
+    const data = await res.json();
+
+    return NextResponse.json({
+      ok: true,
+      hasMessages: data.result?.length > 0,
+      count: data.result?.length || 0,
+      messages: data.result?.slice(0, 3) || [],
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });

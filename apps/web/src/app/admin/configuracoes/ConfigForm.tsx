@@ -73,11 +73,45 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
   const detectChatId = async () => {
     setDetectingChat(true);
     try {
-      const res = await fetch('/api/telegram/setup');
+      const res = await fetch('/api/telegram/setup', { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
-        toast(`✓ Chat ID detectado: ${data.fromName} (${data.fromUsername || 'sem username'})`, 'success');
+        toast(`✓ Chat ID detectado e salvo!`, 'success');
         setValues({ ...values, integrations_telegram_chat_id: data.chatId });
+      } else {
+        // Mostra passos detalhados
+        const steps = (data.steps || []).join('\n');
+        const hint = data.hint || data.error || 'Erro';
+        alert(`❌ ${hint}\n\n${steps}`);
+        toast('Siga as instruções', 'error');
+      }
+    } catch {
+      toast('Erro de conexão', 'error');
+    }
+    setDetectingChat(false);
+  };
+
+  const setManualChatId = async () => {
+    const chatId = prompt(
+      'Cole aqui seu Telegram Chat ID (número, ex: 123456789):\n\n' +
+      'Para descobrir: abra @userinfobot no Telegram e mande /start'
+    );
+    if (!chatId) return;
+    if (!/^-?\d+$/.test(chatId.trim())) {
+      toast('Chat ID inválido. Deve ser só números.', 'error');
+      return;
+    }
+    setDetectingChat(true);
+    try {
+      const res = await fetch('/api/telegram/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manualChatId: chatId.trim(), testAfter: true }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast('✓ Chat ID salvo e testado!', 'success');
+        setValues({ ...values, integrations_telegram_chat_id: chatId.trim() });
       } else {
         toast(data.error || 'Erro', 'error');
       }
@@ -127,13 +161,27 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
               💡 Após preencher, clique em <strong>Salvar tudo</strong>. Tokens sensíveis usam campo tipo senha.
             </div>
             {values.integrations_telegram_bot_token && (
-              <button
-                onClick={detectChatId}
-                disabled={detectingChat}
-                className="w-full bg-becker-purple text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
-              >
-                {detectingChat ? 'Detectando...' : '🔍 Detectar meu Chat ID automaticamente'}
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={detectChatId}
+                  disabled={detectingChat}
+                  className="w-full bg-becker-purple text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                >
+                  {detectingChat ? 'Detectando...' : '🔍 Detectar meu Chat ID automaticamente'}
+                </button>
+                <button
+                  onClick={setManualChatId}
+                  disabled={detectingChat}
+                  className="w-full bg-white border-2 border-becker-line text-becker-ink font-semibold py-2 rounded-xl disabled:opacity-50 text-sm"
+                >
+                  ⌨️ Ou digitar manualmente
+                </button>
+                <div className="text-xs text-becker-slate text-center">
+                  💡 <strong>Não funciona a detecção?</strong> Abra o Telegram, procure
+                  <code className="bg-becker-cream px-1 mx-1 rounded">@userinfobot</code>,
+                  mande <code className="bg-becker-cream px-1 rounded">/start</code> e ele te dá teu ID.
+                </div>
+              </div>
             )}
             {values.integrations_telegram_bot_token && values.integrations_telegram_chat_id && (
               <button
