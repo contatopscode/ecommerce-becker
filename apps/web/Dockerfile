@@ -1,4 +1,5 @@
 # Force rebuild 2026-08-04 19:32
+# Force rebuild 2026-08-05 12:35
 # Becker E-commerce - Dockerfile simplificado
 FROM node:20-bookworm-slim
 
