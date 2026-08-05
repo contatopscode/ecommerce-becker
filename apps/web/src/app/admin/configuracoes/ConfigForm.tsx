@@ -24,6 +24,7 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
   );
   const [saving, setSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState('shipping');
+  const [testingTelegram, setTestingTelegram] = useState(false);
 
   const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
     const cat = s.category || 'general';
@@ -50,6 +51,22 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
       toast('Erro de conexão', 'error');
     }
     setSaving(false);
+  };
+
+  const testTelegram = async () => {
+    setTestingTelegram(true);
+    try {
+      const res = await fetch('/api/telegram/test', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        toast('Mensagem de teste enviada! Verifica o Telegram.', 'success');
+      } else {
+        toast(`Erro: ${data.error}`, 'error');
+      }
+    } catch {
+      toast('Erro de conexão', 'error');
+    }
+    setTestingTelegram(false);
   };
 
   return (
@@ -87,8 +104,19 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
         </h2>
 
         {activeCategory === 'integrations' && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-            💡 Após preencher, clique em <strong>Salvar tudo</strong>. Os tokens ficam criptografados no banco.
+          <div className="mb-4 space-y-3">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+              💡 Após preencher, clique em <strong>Salvar tudo</strong>. Tokens sensíveis usam campo tipo senha.
+            </div>
+            {values.integrations_telegram_bot_token && values.integrations_telegram_chat_id && (
+              <button
+                onClick={testTelegram}
+                disabled={testingTelegram}
+                className="w-full bg-eco-500 text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+              >
+                {testingTelegram ? 'Enviando...' : '📤 Enviar mensagem de teste no Telegram'}
+              </button>
+            )}
           </div>
         )}
 
@@ -105,7 +133,7 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
                   <option value="true">Sim</option>
                   <option value="false">Não</option>
                 </select>
-              ) : s.type === 'text' && s.key.includes('token') ? (
+              ) : s.type === 'text' && (s.key.includes('token') || s.key.includes('key')) ? (
                 <input
                   type="password"
                   value={values[s.key] || ''}

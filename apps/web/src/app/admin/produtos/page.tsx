@@ -1,38 +1,66 @@
 // ============================================================
-// Admin Produtos
+// Admin Produtos (Sprint 5 - com CRUD)
 // ============================================================
 
 import { prisma } from '@becker/db';
-import { ProdutosTable } from './ProdutosTable';
+import { ProdutosClient } from './ProdutosClient';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminProdutosPage() {
-  const products = await prisma.product.findMany({
-    orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
-    include: {
-      category: { select: { name: true, slug: true } },
-      images: { take: 1 },
-      versions: { select: { price: true, stock: true } },
-      _count: { select: { reviews: true } },
-    },
-  });
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({
+      orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        category: true,
+        images: { take: 1, orderBy: { order: 'asc' } },
+        versions: { orderBy: { price: 'asc' } },
+        _count: { select: { reviews: true } },
+      },
+    }),
+    prisma.category.findMany({ orderBy: { name: 'asc' } }),
+  ]);
+
+  // Serializa pra passar pro client
+  const serialized = products.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    shortDescription: p.shortDescription,
+    description: p.description,
+    sku: p.sku,
+    category: { id: p.category.id, name: p.category.name, slug: p.category.slug },
+    active: p.active,
+    isTop: p.isTop,
+    isFeatured: p.isFeatured,
+    isNew: p.isNew,
+    isEco: p.isEco,
+    rating: Number(p.rating),
+    images: p.images.map((i) => ({ id: i.id, url: i.url, isCover: i.isCover, isPrimary: i.isPrimary })),
+    versions: p.versions.map((v) => ({
+      id: v.id,
+      label: v.label,
+      sku: v.sku,
+      price: Number(v.price),
+      stock: v.stock,
+      weight: v.weight,
+    })),
+  }));
+
+  const catsSerialized = categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }));
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-extrabold text-becker-ink">Produtos</h1>
-        <div className="flex gap-2">
-          <span className="text-sm text-becker-slate">
-            {products.length} produto{products.length !== 1 ? 's' : ''}
-          </span>
-          <button className="bg-becker-purple text-white font-semibold px-4 py-2 rounded-full text-sm">
-            + Adicionar
-          </button>
+        <div>
+          <h1 className="text-3xl font-extrabold text-becker-ink">Produtos</h1>
+          <p className="text-sm text-becker-slate mt-1">
+            {serialized.length} produto{serialized.length !== 1 ? 's' : ''} cadastrado{serialized.length !== 1 ? 's' : ''}
+          </p>
         </div>
       </div>
 
-      <ProdutosTable products={products} />
+      <ProdutosClient initialProducts={serialized} categories={catsSerialized} />
     </div>
   );
 }
