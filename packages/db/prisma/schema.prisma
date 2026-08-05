@@ -156,9 +156,9 @@ model Order {
   source         OrderSource    @default(SITE)
 
   paymentId      String?        // ID do Mercado Pago
-  paymentMethod  String?        // pix, credit_card, boleto
+  paymentMethod  PaymentMethod?
   tracking       String?
-  shippingMethod String?        // PAC, SEDEX, free
+  shippingMethod ShippingMethod? @default(free)
 
   notes          String?
   paidAt         DateTime?
@@ -196,6 +196,18 @@ enum OrderSource {
   SITE
   WHATSAPP
   ADMIN
+}
+
+enum PaymentMethod {
+  pix
+  credit_card
+  boleto
+}
+
+enum ShippingMethod {
+  free
+  pac
+  sedex
 }
 
 
