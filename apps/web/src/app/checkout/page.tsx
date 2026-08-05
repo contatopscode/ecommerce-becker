@@ -170,17 +170,17 @@ export default function CheckoutPage() {
           toast(`Bem-vindo de volta, ${data.customer.name.split(' ')[0]}!`, 'success');
         }
 
-        // SPRINT 4: Se cliente já tem nome + endereço + é recorrente, pular pro pagamento
+        // SPRINT 4: NÃO pula automaticamente (cliente pode querer outro endereço)
+        // Só vai pro step 2 (que tem o endereço pré-preenchido pra editar)
         if (
           !data.customer.isNewLead &&
           !data.customer.isFirstPurchase &&
-          data.customer.name &&
-          data.customer.address?.cep &&
-          data.customer.address?.street &&
-          data.customer.address?.number
+          data.customer.address?.cep
         ) {
-          setStep(4);
-          toast('⚡ Tudo pronto! É só escolher o pagamento', 'success');
+          // Avança pro step 2 com endereço pré-preenchido
+          // Cliente pode editar se quiser mandar pra outro lugar
+          setStep(2);
+          toast('📍 Seu último endereço está preenchido. Quer enviar pra outro lugar?', 'info');
         }
       } else {
         setCustomer(null);
@@ -458,9 +458,25 @@ export default function CheckoutPage() {
                 {step === 2 && (
                   <div>
                     <h2 className="text-2xl font-extrabold mb-2">Endereço de entrega</h2>
-                    <p className="text-becker-slate text-sm mb-6">
+                    <p className="text-becker-slate text-sm mb-4">
                       Digite seu CEP e completamos o resto automaticamente ✨
                     </p>
+
+                    {/* Badge: veio preenchido */}
+                    {customer && !customer.isNewLead && customer.address?.cep && (
+                      <div className="mb-6 p-3 bg-eco-50 border border-eco-200 rounded-xl flex items-start gap-3 text-sm">
+                        <span className="text-2xl">📍</span>
+                        <div className="flex-1">
+                          <div className="font-bold text-eco-700">Seu último endereço</div>
+                          <div className="text-eco-600 text-xs mt-0.5">
+                            {customer.address.street}, {customer.address.number} — {customer.address.city}/{customer.address.state}
+                          </div>
+                          <div className="mt-2 text-xs text-becker-slate">
+                            ✏️ Edite os campos abaixo se quiser enviar pra outro lugar
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-4">
                       <div>
