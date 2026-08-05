@@ -5,7 +5,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useCart, toast } from '@/lib/cart';
+import { useWishlist } from '@/lib/wishlist';
 import { formatPrice } from '@/lib/utils';
 
 interface ProductImage {
@@ -66,6 +68,24 @@ export function ProductCard({ product }: ProductCardProps) {
     });
   };
 
+  // Wishlist
+  const wishlist = useWishlist();
+  const [isFav, setIsFav] = useState(false);
+  useEffect(() => {
+    setIsFav(wishlist.has(product.slug));
+  }, [wishlist, product.slug]);
+
+  const toggleFav = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    wishlist.toggle(product.slug);
+    if (isFav) {
+      toast('Removido dos favoritos', 'info');
+    } else {
+      toast('❤️ Adicionado aos favoritos!', 'success');
+    }
+  };
+
   return (
     <article className="bg-white rounded-3xl border border-becker-line overflow-hidden group hover:shadow-pop transition flex flex-col">
       <Link href={`/produto/${product.slug}`} className="relative product-img aspect-square grid place-items-center p-4 block overflow-hidden">
@@ -92,6 +112,15 @@ export function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
         </div>
+        {/* Botão Wishlist */}
+        <button
+          onClick={toggleFav}
+          className="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 hover:bg-white shadow-soft grid place-items-center text-lg z-10 transition"
+          aria-label={isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+        >
+          {isFav ? '❤️' : '🤍'}
+        </button>
+
         {/* Imagem */}
         {primaryImage?.url ? (
           <img

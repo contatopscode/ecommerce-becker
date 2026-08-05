@@ -6,6 +6,7 @@
 import { prisma } from '@becker/db';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { whatsappTemplates } from '@/lib/whatsapp-templates';
+import { sendTelegram, telegramTemplates } from '@/lib/telegram';
 
 export type NotificationEvent =
   | 'order_created'
@@ -112,6 +113,37 @@ export async function notifyOrder(input: NotifyOrderInput) {
     }
 
     await sendWhatsApp({ number: phoneDigits, text });
+
+    // Envia também pro Telegram (Sprint 8 - notificação interna)
+    try {
+      const telegramMap: Record<string, (o: any) => string> = {
+        order_created: (o) => telegramTemplates.newOrder({
+          number: o.number,
+          customerName: o.customerName,
+          total: o.total,
+          itemCount: o.items.length,
+          items: o.items.map((i) => `  • ${i.qty}x ${i.productName}`).join('\n'),
+        }),
+        payment_approved: (o) => telegramTemplates.paymentApproved({
+          number: o.number, customerName: o.customerName, total: o.total,
+        }),
+        shipped: (o) => telegramTemplates.orderShipped({
+          number: o.number, customerName: o.customerName, tracking: orderData.tracking || 'N/A',
+        }),
+        delivered: (o) => telegramTemplates.orderDelivered({
+          number: o.number, customerName: o.customerName,
+        }),
+        cancelled: (o) => telegramTemplates.orderCancelled({
+          number: o.number, customerName: o.customerName,
+        }),
+      };
+      const telegramMsg = telegramMap[event]?.(orderData);
+      if (telegramMsg) {
+        await sendTelegram(telegramMsg);
+      }
+    } catch (e) {
+      console.error('[notify] Telegram error:', e);
+    }
 
     console.log(`[notify] ✓ ${event} enviado para ${phoneDigits} (pedido ${order.number})`);
     return { ok: true };
