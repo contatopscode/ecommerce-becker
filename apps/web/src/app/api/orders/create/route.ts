@@ -146,7 +146,10 @@ export async function POST(req: NextRequest) {
         paymentStatus: 'PENDING',
         paymentMethod,
         source: 'SITE',
-        shippingMethod: shipping?.id || 'free',
+        shippingMethod: (shipping?.id === 'free' ? 'free' :
+                        shipping?.id === 'express' ? 'sedex' :
+                        shipping?.id === 'standard' ? 'pac' :
+                        'free') as any,
         items: { create: orderItems.map((i) => ({ ...i, id: randomBytes(12).toString('hex') })) },
       },
     });
