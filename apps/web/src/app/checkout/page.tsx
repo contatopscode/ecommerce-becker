@@ -169,6 +169,19 @@ export default function CheckoutPage() {
         } else {
           toast(`Bem-vindo de volta, ${data.customer.name.split(' ')[0]}!`, 'success');
         }
+
+        // SPRINT 4: Se cliente já tem nome + endereço + é recorrente, pular pro pagamento
+        if (
+          !data.customer.isNewLead &&
+          !data.customer.isFirstPurchase &&
+          data.customer.name &&
+          data.customer.address?.cep &&
+          data.customer.address?.street &&
+          data.customer.address?.number
+        ) {
+          setStep(4);
+          toast('⚡ Tudo pronto! É só escolher o pagamento', 'success');
+        }
       } else {
         setCustomer(null);
         toast(data.error || 'Erro ao buscar cliente', 'error');
@@ -283,6 +296,49 @@ export default function CheckoutPage() {
     }
     setLoading(false);
   };
+
+  // ============ SALVAR PROGRESSO ============
+  const saveProgress = useCallback(async (stepNum: number) => {
+    if (onlyDigits(whatsapp).length < 10) return;
+
+    try {
+      const data: any = {
+        step: stepNum,
+        whatsapp: onlyDigits(whatsapp),
+        name: name || undefined,
+        email: email || undefined,
+      };
+      if (stepNum >= 2) {
+        data.cep = onlyDigits(cep);
+        data.street = street;
+        data.number = number;
+        data.complement = complement;
+        data.neighborhood = neighborhood;
+        data.city = city;
+        data.state = stateUF;
+      }
+      await fetch('/api/checkout/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch (e) {
+      console.error('Save progress error:', e);
+      // Não bloqueia o fluxo
+    }
+  }, [whatsapp, name, email, cep, street, number, complement, neighborhood, city, stateUF]);
+
+  // Salvar automaticamente ao completar cada step
+  useEffect(() => {
+    if (step === 1 && onlyDigits(whatsapp).length >= 10 && name.length > 1) {
+      const t = setTimeout(() => saveProgress(1), 800);
+      return () => clearTimeout(t);
+    }
+    if (step === 2 && canProceed()) {
+      const t = setTimeout(() => saveProgress(2), 800);
+      return () => clearTimeout(t);
+    }
+  }, [step, whatsapp, name, cep, street, number, neighborhood, city, stateUF, canProceed, saveProgress]);
 
   // ============ VALIDAÇÃO POR STEP ============
   const canProceed = () => {
