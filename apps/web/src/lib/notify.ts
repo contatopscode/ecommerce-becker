@@ -139,7 +139,13 @@ export async function notifyOrder(input: NotifyOrderInput) {
       };
       const telegramMsg = telegramMap[event]?.(orderData);
       if (telegramMsg) {
-        await sendTelegram(telegramMsg);
+        const tgResult = await sendTelegram(telegramMsg);
+        if (!tgResult.ok) {
+          console.error(`[notify] ❌ Telegram falhou: ${tgResult.error}`);
+          // Não joga erro — best-effort
+        } else {
+          console.log(`[notify] ✓ Telegram notificado sobre ${event}`);
+        }
       }
     } catch (e) {
       console.error('[notify] Telegram error:', e);

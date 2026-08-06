@@ -26,6 +26,7 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
   const [activeCategory, setActiveCategory] = useState('shipping');
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [detectingChat, setDetectingChat] = useState(false);
+  const [fixingTelegram, setFixingTelegram] = useState(false);
 
   const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
     const cat = s.category || 'general';
@@ -89,6 +90,36 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
       toast('Erro de conexão', 'error');
     }
     setDetectingChat(false);
+  };
+
+  const fixTelegram = async () => {
+    setFixingTelegram(true);
+    try {
+      const res = await fetch('/api/telegram/fix', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.fixes.length > 0) {
+          toast(`🔧 ${data.fixes.join(' / ')}`, 'success');
+        }
+        if (data.issues.length > 0) {
+          const actionMsg = data.action_required || 'Verifique as configurações';
+          alert(`⚠️ Problemas encontrados:\n\n${data.issues.join('\n\n')}\n\n${actionMsg}`);
+        } else {
+          toast('✅ Tudo OK com Telegram!', 'success');
+        }
+        // Recarrega valores
+        if (!data.currentChatId) {
+          setValues({ ...values, integrations_telegram_chat_id: '' });
+        } else {
+          setValues({ ...values, integrations_telegram_chat_id: data.currentChatId });
+        }
+      } else {
+        toast(data.error || 'Erro', 'error');
+      }
+    } catch {
+      toast('Erro de conexão', 'error');
+    }
+    setFixingTelegram(false);
   };
 
   const setManualChatId = async () => {
@@ -162,6 +193,13 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
             </div>
             {values.integrations_telegram_bot_token && (
               <div className="space-y-2">
+                <button
+                  onClick={fixTelegram}
+                  disabled={fixingTelegram}
+                  className="w-full bg-red-50 border-2 border-red-200 text-red-700 font-semibold py-2 rounded-xl disabled:opacity-50 text-sm"
+                >
+                  {fixingTelegram ? 'Diagnosticando...' : '🩺 Diagnosticar e consertar Telegram'}
+                </button>
                 <button
                   onClick={detectChatId}
                   disabled={detectingChat}
