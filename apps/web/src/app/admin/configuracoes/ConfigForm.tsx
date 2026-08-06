@@ -77,13 +77,23 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
       const res = await fetch('/api/telegram/setup', { method: 'POST' });
       const data = await res.json();
       if (data.ok) {
-        toast(`✓ Chat ID detectado e salvo!`, 'success');
+        toast(`✓ ${data.message}`, 'success');
         setValues({ ...values, integrations_telegram_chat_id: data.chatId });
       } else {
-        // Mostra passos detalhados
+        // Mostra modal detalhado com link pro bot
+        const bot = data.bot;
         const steps = (data.steps || []).join('\n');
         const hint = data.hint || data.error || 'Erro';
-        alert(`❌ ${hint}\n\n${steps}`);
+        const link = bot?.link || 'https://t.me/';
+        const username = bot?.username || 'seu-bot';
+
+        const message = `❌ ${hint}\n\n` +
+          (steps ? `${steps}\n\n` : '') +
+          `💡 Clique aqui pra abrir o bot no Telegram:\n${link}`;
+
+        if (window.confirm(`${message}\n\n(OK = abrir Telegram | Cancelar = fechar)`)) {
+          window.open(link, '_blank');
+        }
         toast('Siga as instruções', 'error');
       }
     } catch {
@@ -193,6 +203,15 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
             </div>
             {values.integrations_telegram_bot_token && (
               <div className="space-y-2">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
+                  <div className="font-semibold mb-1">📋 Passo a passo:</div>
+                  <ol className="space-y-1 text-xs text-becker-slate">
+                    <li>1. Abra o Telegram no celular</li>
+                    <li>2. Clique no link: <a href="https://t.me/MinimaxPaulo_bot" target="_blank" rel="noopener noreferrer" className="text-becker-purple font-bold underline">t.me/MinimaxPaulo_bot</a></li>
+                    <li>3. Mande qualquer mensagem: <code className="bg-white px-1 rounded">oi</code> ou <code className="bg-white px-1 rounded">/start</code></li>
+                    <li>4. Volte aqui e clique em <strong>Detectar</strong> abaixo</li>
+                  </ol>
+                </div>
                 <button
                   onClick={fixTelegram}
                   disabled={fixingTelegram}
