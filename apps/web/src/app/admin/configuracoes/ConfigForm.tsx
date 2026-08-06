@@ -206,11 +206,14 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
                   <div className="font-semibold mb-1">📋 Passo a passo:</div>
                   <ol className="space-y-1 text-xs text-becker-slate">
-                    <li>1. Abra o Telegram no celular</li>
-                    <li>2. Clique no link: <a href="https://t.me/MinimaxPaulo_bot" target="_blank" rel="noopener noreferrer" className="text-becker-purple font-bold underline">t.me/MinimaxPaulo_bot</a></li>
+                    <li>1. Abra o Telegram no <strong>celular ou app desktop</strong> (web.telegram.org não conta)</li>
+                    <li>2. Clique no link: <a href="https://t.me/MinimaxPaulo_bot" target="_blank" rel="noopener noreferrer" className="text-becker-purple font-bold underline">t.me/MinimaxPaulo_bot</a> <span className="text-becker-slate">(o "Minimaxbot" que aparece no chat)</span></li>
                     <li>3. Mande qualquer mensagem: <code className="bg-white px-1 rounded">oi</code> ou <code className="bg-white px-1 rounded">/start</code></li>
                     <li>4. Volte aqui e clique em <strong>Detectar</strong> abaixo</li>
                   </ol>
+                  <div className="mt-2 pt-2 border-t border-blue-200 text-[11px] text-becker-slate">
+                    💡 <strong>Atenção:</strong> O bot aparece como "Minimaxbot" no chat, mas o @username dele é <code className="bg-white px-1 rounded">@MinimaxPaulo_bot</code>. São o mesmo bot — o BotFather confirma.
+                  </div>
                 </div>
                 <button
                   onClick={fixTelegram}
