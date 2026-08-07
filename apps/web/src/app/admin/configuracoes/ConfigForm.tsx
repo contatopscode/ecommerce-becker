@@ -260,6 +260,11 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
                 />
               )}
               <p className="text-[10px] text-becker-slate mt-1 font-mono">{s.key}</p>
+              {s.key === 'integrations_admin_whatsapp' && (
+                <p className="text-[10px] text-amber-700 mt-1 font-sans">
+                  💡 WhatsApp Business API usa formato SEM o 9. Ex: (81) 99944-1333 → <code className="bg-becker-cream px-1 rounded">5581999441333</code>. Sistema normaliza automático.
+                </p>
+              )}
             </div>
           ))}
         </div>

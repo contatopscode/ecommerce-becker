@@ -14,6 +14,28 @@ interface AdminNotifyConfig {
 }
 
 /**
+ * Normaliza número WhatsApp pro formato Evolution API (sem o 9)
+ * Entrada: 55819999441333 (com 9) ou 5581999441333 (sem 9) ou (81) 99944-1333
+ * Saída: 5581999441333 (formato aceito pela API)
+ */
+function normalizeEvolutionNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  // Se tem 13 dígitos (55 + 11 com DDD+9), tira o 9
+  // 55 81 9 9944-1333 = 55 81 9 999441333 = 13 dígitos
+  if (digits.length === 13 && digits.startsWith('55')) {
+    // 55 + DDD(2) + 9 + 9 dígitos = 13
+    // 55 81 9 999441333 -> tira o 9 -> 55 81 999441333 = 12
+    return digits.slice(0, 4) + digits.slice(5);
+  }
+  // Se tem 12 dígitos já tá certo (55 + DDD + 9 dígitos sem o 9)
+  // Se tem 11 dígitos é só DDD+número (sem 55), adiciona 55
+  if (digits.length === 11) {
+    return '55' + digits;
+  }
+  return digits;
+}
+
+/**
  * Busca config do DB, com fallback pras env vars
  */
 async function getAdminNotifyConfig(): Promise<AdminNotifyConfig | null> {
@@ -37,14 +59,16 @@ async function getAdminNotifyConfig(): Promise<AdminNotifyConfig | null> {
     const url = map.integrations_evolution_url || process.env.EVOLUTION_API_URL || '';
     const key = map.integrations_evolution_api_key || process.env.EVOLUTION_API_KEY || '';
     const instance = map.integrations_evolution_instance || process.env.EVOLUTION_INSTANCE || '';
-    const number = map.integrations_admin_whatsapp || process.env.NEXT_PUBLIC_ADMIN_WHATSAPP || '';
+    const numberRaw = map.integrations_admin_whatsapp || process.env.NEXT_PUBLIC_ADMIN_WHATSAPP || '';
 
-    if (!url || !key || !instance || !number) {
+    if (!url || !key || !instance || !numberRaw) {
       console.log('[admin-notify] Config incompleta:', {
-        hasUrl: !!url, hasKey: !!key, hasInstance: !!instance, hasNumber: !!number,
+        hasUrl: !!url, hasKey: !!key, hasInstance: !!instance, hasNumber: !!numberRaw,
       });
       return null;
     }
+
+    const number = normalizeEvolutionNumber(numberRaw);
 
     return { evolutionUrl: url, evolutionKey: key, evolutionInstance: instance, adminNumber: number };
   } catch (e) {
@@ -63,7 +87,7 @@ export async function notifyAdmin(text: string): Promise<{ ok: boolean; error?: 
   }
 
   try {
-    const phoneDigits = config.adminNumber.replace(/\D/g, '');
+    const phoneDigits = config.adminNumber; // já tá normalizado
     const url = `${config.evolutionUrl}/message/sendText/${config.evolutionInstance}`;
 
     const res = await fetch(url, {
