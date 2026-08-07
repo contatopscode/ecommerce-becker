@@ -6,13 +6,13 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
 import { notifyAdmin } from '@/lib/whatsapp-admin';
 
 export async function POST(req: NextRequest) {
   try {
     // Auth: só admin pode testar
-    const session = await getServerSession();
+    const session = await getSession();
     if (!session || !['ADMIN', 'SUPER_ADMIN'].includes(session.role)) {
       return NextResponse.json({ ok: false, error: 'Sem permissão' }, { status: 401 });
     }
