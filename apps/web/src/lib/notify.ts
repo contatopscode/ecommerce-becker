@@ -6,7 +6,7 @@
 // ============================================================
 
 import { prisma } from '@becker/db';
-import { sendWhatsApp } from '@/lib/whatsapp-client';
+import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
 import { whatsappTemplates } from '@/lib/whatsapp-templates';
 import { notifyAdmin, adminTemplates } from '@/lib/whatsapp-admin';
 
@@ -86,7 +86,7 @@ export async function notifyOrder(input: NotifyOrderInput) {
 
     // ========== CLIENTE: WhatsApp Evolution ==========
     if (phone) {
-      const phoneDigits = phone.replace(/\D/g, '');
+      const phoneDigits = normalizeWhatsAppNumber(phone);
 
       let text: string;
       if (customMessage) {
