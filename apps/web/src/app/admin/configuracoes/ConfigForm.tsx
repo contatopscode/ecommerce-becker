@@ -201,55 +201,30 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
               💡 Após preencher, clique em <strong>Salvar tudo</strong>. Tokens sensíveis usam campo tipo senha.
             </div>
-            {values.integrations_telegram_bot_token && (
-              <div className="space-y-2">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm">
-                  <div className="font-semibold mb-1">📋 Passo a passo:</div>
-                  <ol className="space-y-1 text-xs text-becker-slate">
-                    <li>1. Abra o Telegram no <strong>celular ou app desktop</strong> (web.telegram.org não conta)</li>
-                    <li>2. Clique no link: <a href="https://t.me/MinimaxPaulo_bot" target="_blank" rel="noopener noreferrer" className="text-becker-purple font-bold underline">t.me/MinimaxPaulo_bot</a> <span className="text-becker-slate">(o "Minimaxbot" que aparece no chat)</span></li>
-                    <li>3. Mande qualquer mensagem: <code className="bg-white px-1 rounded">oi</code> ou <code className="bg-white px-1 rounded">/start</code></li>
-                    <li>4. Volte aqui e clique em <strong>Detectar</strong> abaixo</li>
-                  </ol>
-                  <div className="mt-2 pt-2 border-t border-blue-200 text-[11px] text-becker-slate">
-                    💡 <strong>Atenção:</strong> O bot aparece como "Minimaxbot" no chat, mas o @username dele é <code className="bg-white px-1 rounded">@MinimaxPaulo_bot</code>. São o mesmo bot — o BotFather confirma.
-                  </div>
-                </div>
-                <button
-                  onClick={fixTelegram}
-                  disabled={fixingTelegram}
-                  className="w-full bg-red-50 border-2 border-red-200 text-red-700 font-semibold py-2 rounded-xl disabled:opacity-50 text-sm"
-                >
-                  {fixingTelegram ? 'Diagnosticando...' : '🩺 Diagnosticar e consertar Telegram'}
-                </button>
-                <button
-                  onClick={detectChatId}
-                  disabled={detectingChat}
-                  className="w-full bg-becker-purple text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
-                >
-                  {detectingChat ? 'Detectando...' : '🔍 Detectar meu Chat ID automaticamente'}
-                </button>
-                <button
-                  onClick={setManualChatId}
-                  disabled={detectingChat}
-                  className="w-full bg-white border-2 border-becker-line text-becker-ink font-semibold py-2 rounded-xl disabled:opacity-50 text-sm"
-                >
-                  ⌨️ Ou digitar manualmente
-                </button>
-                <div className="text-xs text-becker-slate text-center">
-                  💡 <strong>Não funciona a detecção?</strong> Abra o Telegram, procure
-                  <code className="bg-becker-cream px-1 mx-1 rounded">@userinfobot</code>,
-                  mande <code className="bg-becker-cream px-1 rounded">/start</code> e ele te dá teu ID.
-                </div>
-              </div>
-            )}
-            {values.integrations_telegram_bot_token && values.integrations_telegram_chat_id && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+              <div className="font-semibold mb-1">📲 Notificações da equipe (internas):</div>
+              <p className="text-xs">
+                Quando houver <strong>novo pedido, pagamento, envio ou lead</strong>, vamos te enviar um resumo pelo <strong>WhatsApp do admin</strong> usando a Evolution API.
+              </p>
+              <p className="text-xs mt-1">
+                Configure a URL, API Key, Instance e teu WhatsApp abaixo. As notificações pro cliente já usam a mesma Evolution (não precisa configurar).
+              </p>
+            </div>
+            {values.integrations_evolution_url && values.integrations_admin_whatsapp && (
               <button
-                onClick={testTelegram}
-                disabled={testingTelegram}
-                className="w-full bg-eco-500 text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/notify-test', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.ok) toast('✅ Mensagem de teste enviada pro admin!', 'success');
+                    else toast(`❌ ${data.error}`, 'error');
+                  } catch {
+                    toast('Erro de conexão', 'error');
+                  }
+                }}
+                className="w-full bg-eco-500 text-white font-semibold py-2.5 rounded-xl"
               >
-                {testingTelegram ? 'Enviando...' : '📤 Enviar mensagem de teste'}
+                📤 Enviar mensagem de teste pro admin
               </button>
             )}
           </div>

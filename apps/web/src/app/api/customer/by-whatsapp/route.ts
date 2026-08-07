@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { randomBytes } from 'crypto';
-import { sendTelegram, telegramTemplates } from '@/lib/telegram';
+import { notifyNewLead } from '@/lib/notify';
 
 function formatWhatsApp(phone: string) {
   const cleaned = phone.replace(/\D/g, '').slice(0, 11);
@@ -88,15 +88,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Erro ao criar/buscar cliente' }, { status: 500 });
     }
 
-    // Notifica Telegram sobre lead novo (Sprint 8)
+    // Notifica admin (WhatsApp) sobre lead novo (Sprint 8+)
     if (isNewLead) {
       try {
-        await sendTelegram(telegramTemplates.newLead({
+        await notifyNewLead({
           name: user.name,
           whatsapp: user.whatsapp,
-        }));
+          source: 'Site - Checkout',
+        });
       } catch (e) {
-        console.error('[customer] Telegram lead error:', e);
+        console.error('[customer] Lead notify error:', e);
       }
     }
 

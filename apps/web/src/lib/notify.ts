@@ -1,12 +1,14 @@
 // ============================================================
-// Notification service — centraliza envio de WhatsApp
-// Sprint 2: todas as notificações de pedido passam por aqui
+// Notification service — centraliza envio de notificações
+// Sprint 2: notificações de pedido para o CLIENTE (WhatsApp)
+// Sprint 8+: notificações INTERNAS para a EQUIPE (WhatsApp Admin)
+// Substitui Telegram (não acessível)
 // ============================================================
 
 import { prisma } from '@becker/db';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { whatsappTemplates } from '@/lib/whatsapp-templates';
-import { sendTelegram, telegramTemplates } from '@/lib/telegram';
+import { notifyAdmin, adminTemplates } from '@/lib/whatsapp-admin';
 
 export type NotificationEvent =
   | 'order_created'
@@ -24,11 +26,11 @@ interface NotifyOrderInput {
 }
 
 /**
- * Envia notificação WhatsApp baseada no evento do pedido
- * - Busca pedido + endereço + itens
- * - Aplica template apropriado
- * - Envia via Evolution API
- * - Falha silenciosa (best-effort)
+ * Envia notificações:
+ * - Cliente: WhatsApp via Evolution (template formatado)
+ * - Admin: WhatsApp via Evolution (resumo interno)
+ *
+ * Best-effort: falhas não derrubam o fluxo principal
  */
 export async function notifyOrder(input: NotifyOrderInput) {
   const { orderId, event, trackingCode, customMessage } = input;
@@ -50,15 +52,13 @@ export async function notifyOrder(input: NotifyOrderInput) {
 
     const phone = order.user?.whatsapp || order.guestWhatsapp;
     if (!phone) {
-      console.log(`[notify] Pedido ${order.number} sem WhatsApp — pulando`);
-      return { ok: false, error: 'Sem WhatsApp' };
+      console.log(`[notify] Pedido ${order.number} sem WhatsApp — pulando envio cliente`);
     }
-
-    const phoneDigits = phone.replace(/\D/g, '');
 
     const orderData = {
       number: order.number,
       customerName: order.user?.name || order.guestName || 'Cliente',
+      customerPhone: phone || '',
       items: order.items.map((i) => ({
         productName: i.productName,
         versionLabel: i.versionLabel,
@@ -84,77 +84,128 @@ export async function notifyOrder(input: NotifyOrderInput) {
         : undefined,
     };
 
-    let text: string;
-    if (customMessage) {
-      text = customMessage;
-    } else {
-      switch (event) {
-        case 'order_created':
-          text = whatsappTemplates.orderCreated(orderData);
-          break;
-        case 'payment_approved':
-          text = whatsappTemplates.paymentApproved(orderData);
-          break;
-        case 'preparing':
-          text = whatsappTemplates.preparing(orderData);
-          break;
-        case 'shipped':
-          text = whatsappTemplates.shipped(orderData);
-          break;
-        case 'delivered':
-          text = whatsappTemplates.delivered(orderData);
-          break;
-        case 'cancelled':
-          text = whatsappTemplates.cancelled(orderData);
-          break;
-        default:
-          text = customMessage || `Status do pedido ${order.number} atualizado.`;
-      }
-    }
+    // ========== CLIENTE: WhatsApp Evolution ==========
+    if (phone) {
+      const phoneDigits = phone.replace(/\D/g, '');
 
-    await sendWhatsApp({ number: phoneDigits, text });
-
-    // Envia também pro Telegram (Sprint 8 - notificação interna)
-    try {
-      const telegramMap: Record<string, (o: any) => string> = {
-        order_created: (o) => telegramTemplates.newOrder({
-          number: o.number,
-          customerName: o.customerName,
-          total: o.total,
-          itemCount: o.items.length,
-          items: o.items.map((i) => `  • ${i.qty}x ${i.productName}`).join('\n'),
-        }),
-        payment_approved: (o) => telegramTemplates.paymentApproved({
-          number: o.number, customerName: o.customerName, total: o.total,
-        }),
-        shipped: (o) => telegramTemplates.orderShipped({
-          number: o.number, customerName: o.customerName, tracking: orderData.tracking || 'N/A',
-        }),
-        delivered: (o) => telegramTemplates.orderDelivered({
-          number: o.number, customerName: o.customerName,
-        }),
-        cancelled: (o) => telegramTemplates.orderCancelled({
-          number: o.number, customerName: o.customerName,
-        }),
-      };
-      const telegramMsg = telegramMap[event]?.(orderData);
-      if (telegramMsg) {
-        const tgResult = await sendTelegram(telegramMsg);
-        if (!tgResult.ok) {
-          console.error(`[notify] ❌ Telegram falhou: ${tgResult.error}`);
-          // Não joga erro — best-effort
-        } else {
-          console.log(`[notify] ✓ Telegram notificado sobre ${event}`);
+      let text: string;
+      if (customMessage) {
+        text = customMessage;
+      } else {
+        switch (event) {
+          case 'order_created':
+            text = whatsappTemplates.orderCreated(orderData);
+            break;
+          case 'payment_approved':
+            text = whatsappTemplates.paymentApproved(orderData);
+            break;
+          case 'preparing':
+            text = whatsappTemplates.preparing(orderData);
+            break;
+          case 'shipped':
+            text = whatsappTemplates.shipped(orderData);
+            break;
+          case 'delivered':
+            text = whatsappTemplates.delivered(orderData);
+            break;
+          case 'cancelled':
+            text = whatsappTemplates.cancelled(orderData);
+            break;
+          default:
+            text = customMessage || `Status do pedido ${order.number} atualizado.`;
         }
       }
-    } catch (e) {
-      console.error('[notify] Telegram error:', e);
+
+      try {
+        await sendWhatsApp({ number: phoneDigits, text });
+        console.log(`[notify] ✓ Cliente notificado: ${event} → ${phoneDigits}`);
+      } catch (e: any) {
+        console.error(`[notify] ❌ Cliente WhatsApp falhou:`, e.message);
+      }
     }
 
-    console.log(`[notify] ✓ ${event} enviado para ${phoneDigits} (pedido ${order.number})`);
+    // ========== ADMIN: WhatsApp Evolution (resumo interno) ==========
+    try {
+      let adminMsg: string | undefined;
+      switch (event) {
+        case 'order_created':
+          adminMsg = adminTemplates.newOrder({
+            number: orderData.number,
+            customerName: orderData.customerName,
+            customerPhone: orderData.customerPhone,
+            total: orderData.total,
+            items: orderData.items.map((i) => ({
+              qty: i.qty,
+              productName: i.productName,
+              versionLabel: i.versionLabel,
+            })),
+            address: orderData.address,
+            paymentMethod: orderData.paymentMethod,
+          });
+          break;
+        case 'payment_approved':
+          adminMsg = adminTemplates.paymentApproved({
+            number: orderData.number,
+            customerName: orderData.customerName,
+            total: orderData.total,
+          });
+          break;
+        case 'shipped':
+          adminMsg = adminTemplates.orderShipped({
+            number: orderData.number,
+            customerName: orderData.customerName,
+            tracking: orderData.tracking || 'N/A',
+          });
+          break;
+        case 'delivered':
+          adminMsg = adminTemplates.orderDelivered({
+            number: orderData.number,
+            customerName: orderData.customerName,
+          });
+          break;
+        case 'cancelled':
+          adminMsg = adminTemplates.orderCancelled({
+            number: orderData.number,
+            customerName: orderData.customerName,
+          });
+          break;
+        default:
+          // preparing não tem admin template, usa custom
+          adminMsg = `📦 Pedido *${orderData.number}* — ${orderData.customerName} em separação`;
+      }
+
+      if (adminMsg) {
+        const result = await notifyAdmin(adminMsg);
+        if (result.ok) {
+          console.log(`[notify] ✓ Admin notificado: ${event}`);
+        } else {
+          console.error(`[notify] ❌ Admin falhou: ${result.error}`);
+        }
+      }
+    } catch (e: any) {
+      console.error('[notify] Admin notify error:', e.message);
+    }
+
     return { ok: true };
   } catch (e: any) {
-    console.error(`[notify] Erro:`, e);
+    console.error(`[notify] Erro geral:`, e);
+    return { ok: false, error: e.message };
+  }
+}
+
+/**
+ * Notifica admin sobre lead capturado (WhatsApp digitado mas pedido não finalizado)
+ */
+export async function notifyNewLead(lead: { name: string; whatsapp: string; source?: string }) {
+  try {
+    const msg = adminTemplates.newLead({
+      name: lead.name,
+      whatsapp: lead.whatsapp,
+      source: lead.source || 'Site - Checkout',
+    });
+    return await notifyAdmin(msg);
+  } catch (e: any) {
+    console.error('[notify] Lead error:', e.message);
     return { ok: false, error: e.message };
   }
 }
