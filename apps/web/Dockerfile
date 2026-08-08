@@ -1,6 +1,7 @@
 # Force rebuild 2026-08-04 19:32
 # Rebuild Sprint 3.1 - sincronizar schema/db
 # Force rebuild 2026-08-05 12:35
+# Force rebuild Sprint 7 - LGPD + Segurança (2026-08-08)
 # Becker E-commerce - Dockerfile simplificado
 FROM node:20-bookworm-slim
 
