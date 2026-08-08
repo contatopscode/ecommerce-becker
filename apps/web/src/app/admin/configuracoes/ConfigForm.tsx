@@ -14,18 +14,37 @@ interface Setting {
 const CATEGORIES = {
   shipping: { label: '🚚 Frete e Entrega', icon: '🚚' },
   promo: { label: '🎁 Promoções', icon: '🎁' },
+  payments: { label: '💳 Pagamentos', icon: '💳' },
   integrations: { label: '🔌 Integrações', icon: '🔌' },
   general: { label: '⚙️ Geral', icon: '⚙️' },
 };
 
+// Settings default que devem existir mesmo se não foram criados ainda
+const PAYMENT_DEFAULTS: Setting[] = [
+  { key: 'payments_mp_access_token', value: '', category: 'payments', label: 'Mercado Pago - Access Token', type: 'text' },
+  { key: 'payments_mp_public_key', value: '', category: 'payments', label: 'Mercado Pago - Public Key', type: 'text' },
+  { key: 'payments_mp_sandbox', value: 'true', category: 'payments', label: 'Modo Sandbox (Teste)', type: 'boolean' },
+  { key: 'payments_mp_webhook_url', value: '', category: 'payments', label: 'URL do Webhook (opcional)', type: 'text' },
+  { key: 'payments_methods_enabled', value: 'pix,credit_card,boleto', category: 'payments', label: 'Métodos habilitados (separar por vírgula)', type: 'text' },
+];
+
 export function ConfigForm({ settings, session }: { settings: Setting[]; session: any }) {
+  // Mescla settings existentes com defaults de payments
+  const allSettings = [...settings];
+  for (const def of PAYMENT_DEFAULTS) {
+    if (!allSettings.find((s) => s.key === def.key)) {
+      allSettings.push(def);
+    }
+  }
+
   const [values, setValues] = useState<Record<string, string>>(
-    Object.fromEntries(settings.map((s) => [s.key, s.value]))
+    Object.fromEntries(allSettings.map((s) => [s.key, s.value]))
   );
   const [saving, setSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState('shipping');
+  const [testingMP, setTestingMP] = useState(false);
 
-  const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
+  const grouped = allSettings.reduce<Record<string, Setting[]>>((acc, s) => {
     const cat = s.category || 'general';
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(s);
@@ -50,6 +69,22 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
       toast('Erro de conexão', 'error');
     }
     setSaving(false);
+  };
+
+  const testMercadoPago = async () => {
+    setTestingMP(true);
+    try {
+      const res = await fetch('/api/admin/payments/test', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`✅ Conexão OK! Modo: ${data.mode === 'sandbox' ? 'Sandbox (Teste)' : 'Produção'}`, 'success');
+      } else {
+        toast(`❌ ${data.error}`, 'error');
+      }
+    } catch {
+      toast('Erro de conexão', 'error');
+    }
+    setTestingMP(false);
   };
 
   return (
@@ -120,6 +155,32 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
           </div>
         )}
 
+        {activeCategory === 'payments' && (
+          <div className="mb-4 space-y-3">
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-900">
+              <div className="font-semibold mb-1">💳 Mercado Pago</div>
+              <p className="text-xs">
+                Configure suas credenciais do Mercado Pago. Obtenha em{' '}
+                <a href="https://www.mercadopago.com.br/developers/panel/credentials" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                  Developers Panel
+                </a>.
+              </p>
+              <p className="text-xs mt-1">
+                Em <strong>modo sandbox</strong>, use as credenciais de teste. Mude para <strong>produção</strong> quando estiver pronto.
+              </p>
+            </div>
+            {values.payments_mp_access_token && (
+              <button
+                onClick={testMercadoPago}
+                disabled={testingMP}
+                className="w-full bg-eco-500 text-white font-semibold py-2.5 rounded-xl disabled:opacity-50"
+              >
+                {testingMP ? 'Testando...' : '🔌 Testar conexão Mercado Pago'}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="space-y-4">
           {(grouped[activeCategory] || []).map((s) => (
             <div key={s.key}>
@@ -153,6 +214,11 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
               {s.key === 'integrations_admin_whatsapp' && (
                 <p className="text-[10px] text-amber-700 mt-1 font-sans">
                   💡 WhatsApp Business API usa formato SEM o 9. Ex: (81) 99944-1333 → <code className="bg-becker-cream px-1 rounded">5581999441333</code>. Sistema normaliza automático.
+                </p>
+              )}
+              {s.key === 'payments_mp_sandbox' && (
+                <p className="text-[10px] text-amber-700 mt-1 font-sans">
+                  ⚠️ Em <strong>produção</strong>, desmarque essa opção. Use <strong>sandbox</strong> apenas para testes.
                 </p>
               )}
             </div>

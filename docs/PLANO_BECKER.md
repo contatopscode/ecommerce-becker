@@ -124,15 +124,22 @@ Plataforma de e-commerce completa para a **Becker** (produtos de limpeza, 40 ano
 
 ## 🔴 A FAZER (Pendente)
 
-### 🚀 Sprint 6 — Pagamento Real (Gateway a definir)
-> ⚠️ **Decisão pendente:** qual gateway usar (Mercado Pago é candidato, mas pode ser outro)
+### 🚀 Sprint 6 — Pagamento Real (Mercado Pago)
+> ✅ **Decisão:** Mercado Pago (definido 08/08/2026)
+> ✅ **Modo:** Sandbox primeiro, migração pra produção depois
+> ✅ **Config:** Aba "Pagamentos" em /admin/configuracoes (credenciais no DB)
 
-- [ ] Decidir gateway de pagamento (Mercado Pago, PagSeguro, Stripe, Asaas)
-- [ ] Implementar integração (PIX + Cartão + Boleto)
-- [ ] Webhook de pagamento confirmado (atualizar status automaticamente)
+- [x] SDK Mercado Pago (`mercadopago` v2.x)
+- [x] `lib/payments/mercadopago.ts` (wrapper)
+- [x] `lib/payments/index.ts` (fachada)
+- [x] Modificar `/api/orders/create` pra criar pagamento PIX
+- [x] Webhook `/api/webhooks/mercadopago`
+- [x] Polling `/api/orders/status/[orderId]`
+- [x] UI `/checkout/pagamento/[orderId]` com QR Code real
+- [x] Aba "Pagamentos" em `/admin/configuracoes` com botão "Testar conexão"
 - [ ] Estorno / refund
-- [ ] Remover pagamento simulado (manter como fallback)
-- [ ] **Estimativa:** 1-2 semanas (após decisão)
+- [ ] Migração produção (após validar em sandbox)
+- [ ] **Estimativa:** 1-2 semanas (validar sandbox + produção)
 
 ### 🔒 Sprint 7 — LGPD + Segurança
 - [x] Banner de consentimento de cookies (LGPD)

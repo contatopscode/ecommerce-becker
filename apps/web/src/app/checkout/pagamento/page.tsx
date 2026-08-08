@@ -1,7 +1,6 @@
 // ============================================================
-// Checkout > Pagamento (Sprint 2)
-// Sprint 3: tela com QR code PIX fake + opção cartão
-// Aguarda integração Mercado Pago real (Sprint 6)
+// Checkout > Pagamento
+// Sprint 6: integração Mercado Pago (PIX + Cartão)
 // ============================================================
 
 import { prisma } from '@becker/db';
@@ -54,6 +53,7 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           orderNumber={order.number}
           total={Number(order.total)}
           paymentMethod={order.paymentMethod || 'pix'}
+          paymentId={order.paymentId || undefined}
         />
       </div>
     </PageShell>

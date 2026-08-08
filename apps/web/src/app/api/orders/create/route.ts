@@ -9,6 +9,7 @@ import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { getSession } from '@/lib/auth/session';
 import { notifyOrder } from '@/lib/notify';
 import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
+import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
 
 function genOrderNumber() {
   const now = new Date();
@@ -175,7 +176,54 @@ export async function POST(req: NextRequest) {
       console.error('Erro ao enviar WhatsApp:', e);
     }
 
-    return NextResponse.json({ ok: true, orderId: order.id, orderNumber: order.number });
+    // ============== MERCADO PAGO ==============
+    // Se MP está configurado e o método é PIX, cria pagamento agora
+    let payment: { paymentId?: string; qrCode?: string; qrCodeBase64?: string; ticketUrl?: string; expirationDate?: string } = {};
+    const provider = await getActiveProvider();
+
+    if (provider === 'mercadopago' && safePaymentMethod === 'pix') {
+      try {
+        const mpResult = await mercadopagoLib.createPixPayment({
+          orderId: order.id,
+          orderNumber: order.number,
+          total,
+          customer: {
+            name,
+            email: email || undefined,
+            whatsapp: whatsappFormatted,
+          },
+          expirationMinutes: 30,
+        });
+
+        if (mpResult.ok) {
+          payment = {
+            paymentId: mpResult.paymentId,
+            qrCode: mpResult.qrCode,
+            qrCodeBase64: mpResult.qrCodeBase64,
+            ticketUrl: mpResult.ticketUrl,
+            expirationDate: mpResult.expirationDate,
+          };
+
+          // Salva paymentId no pedido
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentId: mpResult.paymentId },
+          });
+        } else {
+          console.error('[mercadopago] Falha ao criar pagamento:', mpResult.error);
+          // Continua mesmo assim - pedido criado, admin pode gerar pagamento manual
+        }
+      } catch (e) {
+        console.error('[mercadopago] Exceção ao criar pagamento:', e);
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      orderId: order.id,
+      orderNumber: order.number,
+      payment,
+    });
   } catch (e: any) {
     console.error('Order create error:', e);
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
