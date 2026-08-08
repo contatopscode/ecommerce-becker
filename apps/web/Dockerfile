@@ -2,6 +2,7 @@
 # Rebuild Sprint 3.1 - sincronizar schema/db
 # Force rebuild 2026-08-05 12:35
 # Force rebuild Sprint 7 - LGPD + Segurança (2026-08-08)
+# Force rebuild Sprint 9 - Cart Recovery (aplica DB schema no startup) 2026-08-08
 # Becker E-commerce - Dockerfile simplificado
 FROM node:20-bookworm-slim
 
@@ -41,4 +42,9 @@ ENV HOSTNAME=0.0.0.0
 
 EXPOSE 3000
 WORKDIR /app/apps/web
-CMD ["npx", "next", "start", "-p", "3000", "-H", "0.0.0.0"]
+
+# Script de start: aplica schema do Prisma antes de iniciar Next.js
+# Garante que tabelas novas (CartRecovery, etc) sejam criadas no startup
+COPY apps/web/scripts/start.sh /app/scripts/start.sh
+RUN chmod +x /app/scripts/start.sh
+CMD ["/app/scripts/start.sh"]
