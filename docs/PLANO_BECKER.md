@@ -135,13 +135,14 @@ Plataforma de e-commerce completa para a **Becker** (produtos de limpeza, 40 ano
 - [ ] **Estimativa:** 1-2 semanas (após decisão)
 
 ### 🔒 Sprint 7 — LGPD + Segurança
-- [ ] Banner de consentimento de cookies (LGPD)
-- [ ] Política de privacidade + Termos de uso
-- [ ] 2FA para admin (TOTP)
-- [ ] Backup automático diário do Postgres
-- [ ] Rate limiting nas APIs
-- [ ] Logs de auditoria
-- [ ] **Estimativa:** 1-2 semanas
+- [x] Banner de consentimento de cookies (LGPD)
+- [x] Política de privacidade (`/privacidade`)
+- [x] Termos de uso (`/termos`)
+- [x] 2FA para admin (TOTP com otplib) — `/admin/seguranca`
+- [x] Backup automático do Postgres (script + API + cron externo)
+- [x] Rate limiting nas APIs críticas (OTP, orders, cep, search)
+- [ ] Logs de auditoria (próxima sprint)
+- [ ] **Estimativa:** 1-2 semanas (Fase 1 completa)
 
 ### 🧾 Sprint 8 — Nota Fiscal
 - [ ] Decidir provedor (Focus NFe, eNotas, Tiny)

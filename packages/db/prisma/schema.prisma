@@ -22,6 +22,12 @@ model User {
   cpfCnpj      String?   @unique
   passwordHash String?
   role         Role      @default(CUSTOMER)
+
+  // 2FA (TOTP)
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String?   // Base32 encoded TOTP secret
+  twoFactorBackupCodes String?  // JSON array de códigos hasheados
+
   addresses    Address[]
   orders       Order[]
   reviews      Review[]

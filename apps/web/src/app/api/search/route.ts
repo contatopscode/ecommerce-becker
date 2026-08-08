@@ -5,8 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
+import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  // Rate limit: 60 req / min por IP
+  const limited = checkRateLimit(req, LIMITS.SEARCH);
+  if (limited) return limited;
+
   const q = (req.nextUrl.searchParams.get('q') || '').trim();
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '8');
 

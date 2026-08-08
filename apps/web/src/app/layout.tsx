@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { CookieBanner } from '@/components/CookieBanner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,7 +33,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <CookieBanner />
+      </body>
     </html>
   );
 }

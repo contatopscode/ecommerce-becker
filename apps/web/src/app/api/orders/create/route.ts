@@ -8,6 +8,7 @@ import { prisma } from '@becker/db';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { getSession } from '@/lib/auth/session';
 import { notifyOrder } from '@/lib/notify';
+import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 function genOrderNumber() {
   const now = new Date();
@@ -15,6 +16,10 @@ function genOrderNumber() {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 10 req / hora por IP
+  const limited = checkRateLimit(req, LIMITS.CREATE_ORDER);
+  if (limited) return limited;
+
   try {
     const data = await req.json();
     const { whatsapp, name, email, cep, street, number, complement, neighborhood, city, state,

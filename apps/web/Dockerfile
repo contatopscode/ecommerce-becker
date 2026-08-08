@@ -6,9 +6,9 @@ FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Instala OpenSSL pro Prisma + dumb-init
+# Instala OpenSSL pro Prisma + postgresql-client (backup) + dumb-init
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ca-certificates \
+    openssl ca-certificates postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Habilita pnpm 9
