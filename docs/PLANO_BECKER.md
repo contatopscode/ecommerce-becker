@@ -159,14 +159,26 @@ Plataforma de e-commerce completa para a **Becker** (produtos de limpeza, 40 ano
 - [ ] Cancelamento / carta de correção
 - [ ] **Estimativa:** 1 semana
 
-### 📈 Sprint 9 — Marketing & Analytics
+### 📈 Sprint 9 — Marketing WhatsApp (Carrinho Abandonado + 1ª Compra)
+> ✅ **Marketing SEMPRE via WhatsApp** (não email - decisão 08/08/2026)
+> ❌ **Push notifications (PWA)** - dispensado (público C/D/E não instala)
+> 💡 **Bot atendimento fim-a-fim** - ideia futura
+
+- [x] Schema Prisma: `CartRecovery` model (id, whatsapp, items, sent1h/24h/72h flags)
+- [x] `lib/cart-recovery.ts` (save, process, mark converted)
+- [x] `lib/cupom-first-buy.ts` (detecta primeira compra + cupom auto)
+- [x] API: `POST /api/cart/save` (frontend salva)
+- [x] API: `POST /api/cart/process-abandoned` (job hourly)
+- [x] API: `GET /api/cart/abandoned` (admin lista)
+- [x] API: `GET /api/cupom/first-buy` (frontend consulta)
+- [x] UI: `/admin/carrinhos` (dashboard com stats + tabela)
+- [x] Integração com orders/create (marca como convertido)
+- [x] Cron mavis `becker-cart-recovery` (cada 1h)
+- [x] ConfigForm: setting `promo_first_buy_coupon`
 - [ ] Google Analytics 4 + Tag Manager
 - [ ] Facebook Pixel
 - [ ] Integração com Google Ads
-- [ ] Cupom por primeira compra automático (sem precisar digitar)
-- [ ] Email marketing (cart abandonado, pós-compra)
-- [ ] Push notifications (PWA)
-- [ ] **Estimativa:** 2 semanas
+- [ ] **Estimativa:** ✅ Marketing WhatsApp pronto, restante em backlog
 
 ### 🔍 Sprint 10 — SEO & Performance
 - [ ] Meta tags dinâmicas (OpenGraph, Twitter Cards)

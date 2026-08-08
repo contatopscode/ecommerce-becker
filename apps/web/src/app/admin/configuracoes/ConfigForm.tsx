@@ -28,10 +28,19 @@ const PAYMENT_DEFAULTS: Setting[] = [
   { key: 'payments_methods_enabled', value: 'pix,credit_card,boleto', category: 'payments', label: 'Métodos habilitados (separar por vírgula)', type: 'text' },
 ];
 
+const PROMO_DEFAULTS: Setting[] = [
+  { key: 'promo_first_buy_coupon', value: 'BECKER15', category: 'promo', label: 'Cupom automático de primeira compra', type: 'text' },
+];
+
 export function ConfigForm({ settings, session }: { settings: Setting[]; session: any }) {
   // Mescla settings existentes com defaults de payments
   const allSettings = [...settings];
   for (const def of PAYMENT_DEFAULTS) {
+    if (!allSettings.find((s) => s.key === def.key)) {
+      allSettings.push(def);
+    }
+  }
+  for (const def of PROMO_DEFAULTS) {
     if (!allSettings.find((s) => s.key === def.key)) {
       allSettings.push(def);
     }
@@ -178,6 +187,18 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
                 {testingMP ? 'Testando...' : '🔌 Testar conexão Mercado Pago'}
               </button>
             )}
+          </div>
+        )}
+
+        {activeCategory === 'promo' && (
+          <div className="mb-4 space-y-3">
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm text-purple-900">
+              <div className="font-semibold mb-1">🎁 Marketing via WhatsApp</div>
+              <p className="text-xs">
+                Cupom de primeira compra é aplicado <strong>automaticamente</strong> no checkout quando o cliente nunca comprou antes.
+                Mensagens de carrinho abandonado (1h, 24h, 72h) são enviadas por WhatsApp via cron.
+              </p>
+            </div>
           </div>
         )}
 

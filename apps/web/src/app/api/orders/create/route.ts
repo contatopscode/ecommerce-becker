@@ -10,6 +10,7 @@ import { getSession } from '@/lib/auth/session';
 import { notifyOrder } from '@/lib/notify';
 import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
+import { markAsConverted } from '@/lib/cart-recovery';
 
 function genOrderNumber() {
   const now = new Date();
@@ -174,6 +175,13 @@ export async function POST(req: NextRequest) {
       await notifyOrder({ orderId: order.id, event: 'order_created' });
     } catch (e) {
       console.error('Erro ao enviar WhatsApp:', e);
+    }
+
+    // Marcar carrinho como convertido (Sprint 9)
+    try {
+      await markAsConverted(whatsappFormatted, order.id);
+    } catch (e) {
+      console.error('Erro ao marcar carrinho como convertido:', e);
     }
 
     // ============== MERCADO PAGO ==============

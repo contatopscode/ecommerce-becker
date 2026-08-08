@@ -73,6 +73,8 @@ export const LIMITS = {
   OTP_VERIFY: { max: 10, windowMs: 15 * 60 * 1000 },     // 10 req / 15 min
   // Pedidos
   CREATE_ORDER: { max: 10, windowMs: 60 * 60 * 1000 },   // 10 req / hora
+  // Carrinho (Sprint 9)
+  CART_SAVE: { max: 30, windowMs: 60 * 1000 },            // 30 req / min
   // Admin
   ADMIN_API: { max: 100, windowMs: 60 * 1000 },          // 100 req / min
   // Público

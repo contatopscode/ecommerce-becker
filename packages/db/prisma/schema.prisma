@@ -295,6 +295,41 @@ model Newsletter {
   createdAt DateTime @default(now())
 }
 
+// ============ CART RECOVERY (Sprint 9) ============
+// Carrinhos salvos pelo cliente durante o checkout
+// Se não virar pedido em X horas, dispara WhatsApp automático
+model CartRecovery {
+  id              String   @id @default(cuid())
+  whatsapp        String   // cliente
+  customerName    String?
+  items           Json     // [{ productId, name, versionId, versionLabel, price, qty, image }]
+  subtotal        Decimal  @db.Decimal(10, 2)
+  totalItems      Int      // qtd total de itens
+  cupom           String?  // cupom aplicado (se houver)
+
+  // Tracking de mensagens enviadas
+  sent1h          Boolean  @default(false)  // msg 1 hora enviada?
+  sent1hAt        DateTime?
+  sent24h         Boolean  @default(false)
+  sent24hAt       DateTime?
+  sent72h         Boolean  @default(false)
+  sent72hAt       DateTime?
+
+  // Status
+  converted       Boolean  @default(false)  // virou pedido?
+  orderId         String?  // pedido gerado
+  expiresAt       DateTime // 7 dias (limpeza automática)
+  lastSeenAt      DateTime @default(now())  // última vez que frontend salvou
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([whatsapp])
+  @@index([expiresAt])
+  @@index([converted])
+  @@index([lastSeenAt])
+}
+
 // ============ SETTINGS ============
 model Setting {
   id        String   @id @default(cuid())
