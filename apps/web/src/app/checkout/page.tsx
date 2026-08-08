@@ -201,6 +201,53 @@ export default function CheckoutPage() {
     }
   }, [whatsapp, searchByWhatsapp]);
 
+  // ============ SPRINT 9: SALVAR CARRINHO NO SERVIDOR ============
+  // Pra detectar carrinho abandonado e enviar WhatsApp 1h/24h/72h
+  const saveCartToServer = useCallback(async () => {
+    const cleaned = onlyDigits(whatsapp);
+    if (cleaned.length < 10 || cart.items.length === 0) return;
+
+    try {
+      await fetch('/api/cart/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          whatsapp: cleaned,
+          customerName: name || undefined,
+          cupom: cupomApplied?.code,
+          items: cart.items.map((i) => ({
+            productId: i.productId,
+            name: i.name || 'Produto',
+            versionId: i.versionId,
+            versionLabel: i.versionLabel || '',
+            price: i.price || 0,
+            qty: i.qty,
+            image: i.image,
+          })),
+        }),
+        // Best-effort: não bloqueia checkout se falhar
+      });
+    } catch (e) {
+      // Silencia - não queremos bloquear UX
+    }
+  }, [whatsapp, name, cart.items, cupomApplied]);
+
+  // Salva carrinho quando chega no checkout (auto-save a cada 30s + em ações críticas)
+  useEffect(() => {
+    if (cart.items.length === 0) return;
+    if (onlyDigits(whatsapp).length < 10) return;
+
+    // Salva a cada 30s enquanto cliente tá no checkout
+    const interval = setInterval(() => {
+      saveCartToServer();
+    }, 30000);
+
+    // Salva imediatamente
+    saveCartToServer();
+
+    return () => clearInterval(interval);
+  }, [cart.items, whatsapp, name, cupomApplied, saveCartToServer]);
+
   // Auto-trigger CEP quando tiver 8 dígitos
   useEffect(() => {
     const cleaned = onlyDigits(cep);
