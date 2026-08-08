@@ -131,10 +131,19 @@ async function cleanOldBackups(): Promise<void> {
 }
 
 /**
- * Valida token de autorização
+ * Valida token de autorização para jobs internos (cron, webhooks, etc)
+ * Variável de ambiente: CRON_TOKEN
+ *
+ * Usado para autenticar chamadas internas feitas por:
+ * - Cron jobs (mavis, Easypanel, cron-job.org)
+ * - Webhooks internos
+ * - Qualquer serviço automatizado que precisa chamar a API
+ *
+ * NÃO confundir com tokens de integração externa (Evolution API, Mercado Pago, etc)
+ * que têm suas próprias variáveis (EVOLUTION_API_KEY, MERCADOPAGO_ACCESS_TOKEN, etc).
  */
-export function isValidBackupToken(token: string | null): boolean {
-  const expected = process.env.BACKUP_TOKEN;
+export function isValidCronToken(token: string | null): boolean {
+  const expected = process.env.CRON_TOKEN;
   if (!expected) return false;
   if (!token) return false;
   // Comparação de tempo constante para evitar timing attacks

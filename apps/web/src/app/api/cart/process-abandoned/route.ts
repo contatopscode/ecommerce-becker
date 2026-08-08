@@ -3,16 +3,16 @@
 // POST /api/cart/process-abandoned
 // Chamado por cron externo (a cada 1 hora)
 // Envia WhatsApp 1h, 24h, 72h conforme timing
+// Autenticação: header x-cron-token (CRON_TOKEN env var)
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { processAbandonedCarts } from '@/lib/cart-recovery';
-import { isValidBackupToken } from '@/lib/backup';
+import { isValidCronToken } from '@/lib/backup';
 
 export async function POST(req: NextRequest) {
-  // Protegido por token (mesmo do backup)
-  const token = req.headers.get('x-backup-token');
-  if (!isValidBackupToken(token)) {
+  const token = req.headers.get('x-cron-token');
+  if (!isValidCronToken(token)) {
     return NextResponse.json({ ok: false, error: 'Token inválido' }, { status: 401 });
   }
 

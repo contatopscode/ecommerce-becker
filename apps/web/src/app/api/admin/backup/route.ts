@@ -2,15 +2,15 @@
 // API: Backup do banco
 // POST /api/admin/backup - Executa novo backup
 // GET /api/admin/backup - Lista backups existentes
-// Autenticação: header x-backup-token
+// Autenticação: header x-cron-token (CRON_TOKEN env var)
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { runBackup, listBackups, isValidBackupToken } from '@/lib/backup';
+import { runBackup, listBackups, isValidCronToken } from '@/lib/backup';
 
 export async function POST(req: NextRequest) {
-  const token = req.headers.get('x-backup-token');
-  if (!isValidBackupToken(token)) {
+  const token = req.headers.get('x-cron-token');
+  if (!isValidCronToken(token)) {
     return NextResponse.json({ ok: false, error: 'Token inválido' }, { status: 401 });
   }
 
@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const token = req.headers.get('x-backup-token');
-  if (!isValidBackupToken(token)) {
+  const token = req.headers.get('x-cron-token');
+  if (!isValidCronToken(token)) {
     return NextResponse.json({ ok: false, error: 'Token inválido' }, { status: 401 });
   }
 

@@ -146,7 +146,7 @@ Plataforma de e-commerce completa para a **Becker** (produtos de limpeza, 40 ano
 - [x] Política de privacidade (`/privacidade`)
 - [x] Termos de uso (`/termos`)
 - [x] 2FA para admin (TOTP com otplib) — `/admin/seguranca`
-- [x] Backup automático do Postgres (script + API + cron externo)
+- [x] Backup automático do Postgres (script + API + cron externo via CRON_TOKEN)
 - [x] Rate limiting nas APIs críticas (OTP, orders, cep, search)
 - [ ] Logs de auditoria (próxima sprint)
 - [ ] **Estimativa:** 1-2 semanas (Fase 1 completa)

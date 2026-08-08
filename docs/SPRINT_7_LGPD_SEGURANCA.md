@@ -55,8 +55,10 @@ crontab -e
 Adicionar no `.env` (e no Easypanel):
 
 ```env
-# Token de proteção da API de backup (gere algo forte)
-BACKUP_TOKEN="seu-token-seguro-aqui-com-32-chars-min"
+# Token de proteção dos jobs internos (cron, webhooks, etc)
+# Usado por: backup, cart-recovery, e qualquer job futuro
+# Gere com: openssl rand -base64 32
+CRON_TOKEN="seu-token-seguro-aqui-com-32-chars-min"
 
 # Diretório de backup (padrão: ./backups)
 BACKUP_DIR="/app/backups"
@@ -64,6 +66,8 @@ BACKUP_DIR="/app/backups"
 # Retenção em dias (padrão: 7)
 BACKUP_RETENTION_DAYS="7"
 ```
+
+**Header esperado em todas as chamadas internas:** `x-cron-token: <CRON_TOKEN>`
 
 ### Restauração
 
