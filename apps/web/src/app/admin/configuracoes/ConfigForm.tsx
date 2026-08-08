@@ -24,9 +24,6 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
   );
   const [saving, setSaving] = useState(false);
   const [activeCategory, setActiveCategory] = useState('shipping');
-  const [testingTelegram, setTestingTelegram] = useState(false);
-  const [detectingChat, setDetectingChat] = useState(false);
-  const [fixingTelegram, setFixingTelegram] = useState(false);
 
   const grouped = settings.reduce<Record<string, Setting[]>>((acc, s) => {
     const cat = s.category || 'general';
@@ -53,113 +50,6 @@ export function ConfigForm({ settings, session }: { settings: Setting[]; session
       toast('Erro de conexão', 'error');
     }
     setSaving(false);
-  };
-
-  const testTelegram = async () => {
-    setTestingTelegram(true);
-    try {
-      const res = await fetch('/api/telegram/test', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        toast('Mensagem de teste enviada! Verifica o Telegram.', 'success');
-      } else {
-        toast(`Erro: ${data.error}`, 'error');
-      }
-    } catch {
-      toast('Erro de conexão', 'error');
-    }
-    setTestingTelegram(false);
-  };
-
-  const detectChatId = async () => {
-    setDetectingChat(true);
-    try {
-      const res = await fetch('/api/telegram/setup', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        toast(`✓ ${data.message}`, 'success');
-        setValues({ ...values, integrations_telegram_chat_id: data.chatId });
-      } else {
-        // Mostra modal detalhado com link pro bot
-        const bot = data.bot;
-        const steps = (data.steps || []).join('\n');
-        const hint = data.hint || data.error || 'Erro';
-        const link = bot?.link || 'https://t.me/';
-        const username = bot?.username || 'seu-bot';
-
-        const message = `❌ ${hint}\n\n` +
-          (steps ? `${steps}\n\n` : '') +
-          `💡 Clique aqui pra abrir o bot no Telegram:\n${link}`;
-
-        if (window.confirm(`${message}\n\n(OK = abrir Telegram | Cancelar = fechar)`)) {
-          window.open(link, '_blank');
-        }
-        toast('Siga as instruções', 'error');
-      }
-    } catch {
-      toast('Erro de conexão', 'error');
-    }
-    setDetectingChat(false);
-  };
-
-  const fixTelegram = async () => {
-    setFixingTelegram(true);
-    try {
-      const res = await fetch('/api/telegram/fix', { method: 'POST' });
-      const data = await res.json();
-      if (data.ok) {
-        if (data.fixes.length > 0) {
-          toast(`🔧 ${data.fixes.join(' / ')}`, 'success');
-        }
-        if (data.issues.length > 0) {
-          const actionMsg = data.action_required || 'Verifique as configurações';
-          alert(`⚠️ Problemas encontrados:\n\n${data.issues.join('\n\n')}\n\n${actionMsg}`);
-        } else {
-          toast('✅ Tudo OK com Telegram!', 'success');
-        }
-        // Recarrega valores
-        if (!data.currentChatId) {
-          setValues({ ...values, integrations_telegram_chat_id: '' });
-        } else {
-          setValues({ ...values, integrations_telegram_chat_id: data.currentChatId });
-        }
-      } else {
-        toast(data.error || 'Erro', 'error');
-      }
-    } catch {
-      toast('Erro de conexão', 'error');
-    }
-    setFixingTelegram(false);
-  };
-
-  const setManualChatId = async () => {
-    const chatId = prompt(
-      'Cole aqui seu Telegram Chat ID (número, ex: 123456789):\n\n' +
-      'Para descobrir: abra @userinfobot no Telegram e mande /start'
-    );
-    if (!chatId) return;
-    if (!/^-?\d+$/.test(chatId.trim())) {
-      toast('Chat ID inválido. Deve ser só números.', 'error');
-      return;
-    }
-    setDetectingChat(true);
-    try {
-      const res = await fetch('/api/telegram/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ manualChatId: chatId.trim(), testAfter: true }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        toast('✓ Chat ID salvo e testado!', 'success');
-        setValues({ ...values, integrations_telegram_chat_id: chatId.trim() });
-      } else {
-        toast(data.error || 'Erro', 'error');
-      }
-    } catch {
-      toast('Erro de conexão', 'error');
-    }
-    setDetectingChat(false);
   };
 
   return (

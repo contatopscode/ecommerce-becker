@@ -18,7 +18,6 @@ ENV PATH="/root/.local/share/pnpm:$PATH"
 # Copia config files primeiro (cache melhor)
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc* ./
 COPY apps/web/package.json ./apps/web/
-COPY apps/admin/package.json ./apps/admin/
 COPY packages/db/package.json ./packages/db/
 COPY packages/lib/package.json ./packages/lib/
 COPY packages/ui/package.json ./packages/ui/

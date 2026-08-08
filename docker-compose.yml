@@ -15,7 +15,6 @@ services:
       - becker-net
     depends_on:
       - web
-      - admin
     restart: unless-stopped
 
   web:
@@ -32,18 +31,6 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-    networks:
-      - becker-net
-    restart: unless-stopped
-
-  admin:
-    build:
-      context: .
-      dockerfile: apps/admin/Dockerfile
-    container_name: becker-admin
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
     networks:
       - becker-net
     restart: unless-stopped

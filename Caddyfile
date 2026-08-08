@@ -1,14 +1,7 @@
 # Caddyfile - Becker E-commerce
+# Admin é servido pelo mesmo app (apps/web) na rota /admin
 
 becker.pscode.ia.br {
     encode gzip zstd
     reverse_proxy becker-web:3000
-}
-
-admin.becker.pscode.ia.br {
-    encode gzip zstd
-    reverse_proxy becker-admin:3001
-    basicauth {
-        admin $2a$14$SEU_HASH_BCRYPT_AQUI
-    }
 }
