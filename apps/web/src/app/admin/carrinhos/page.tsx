@@ -28,6 +28,9 @@ export default function CarrinhosPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'abandoned'>('abandoned');
   const [processing, setProcessing] = useState(false);
+  const [testWhatsapp, setTestWhatsapp] = useState('');
+  const [testResult, setTestResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [testSending, setTestSending] = useState(false);
 
   useEffect(() => {
     loadCarts();
@@ -51,7 +54,7 @@ export default function CarrinhosPage() {
     try {
       const res = await fetch('/api/cart/process-abandoned', {
         method: 'POST',
-        headers: { 'x-backup-token': window.prompt('Token de backup:') || '' },
+        headers: { 'x-cron-token': window.prompt('CRON_TOKEN:') || '' },
       });
       const data = await res.json();
       if (data.ok) {
@@ -64,6 +67,35 @@ export default function CarrinhosPage() {
       alert('Erro: ' + e.message);
     }
     setProcessing(false);
+  }
+
+  async function sendTestMessage(type: '1h' | '24h' | '72h') {
+    if (!testWhatsapp) {
+      setTestResult({ type: 'error', message: 'Digite um WhatsApp' });
+      return;
+    }
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/admin/cart/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp: testWhatsapp, type }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTestResult({
+          type: 'success',
+          message: `✅ ${type} enviado! ID: ${data.messageId} | Para: ${data.sentTo} | ${data.items} itens | ${formatPrice(data.subtotal)}`,
+        });
+        loadCarts(); // recarrega pra mostrar o carrinho criado
+      } else {
+        setTestResult({ type: 'error', message: data.error || 'Erro' });
+      }
+    } catch (e: any) {
+      setTestResult({ type: 'error', message: e.message });
+    }
+    setTestSending(false);
   }
 
   function formatDate(d: string | null) {
@@ -95,6 +127,77 @@ export default function CarrinhosPage() {
         >
           {processing ? 'Processando...' : '⚡ Processar agora'}
         </button>
+      </div>
+
+      {/* 🧪 PAINEL DE TESTE */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-5 mb-6">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="text-3xl">🧪</div>
+          <div className="flex-1">
+            <div className="font-extrabold text-lg mb-1">Validar WhatsApp</div>
+            <p className="text-sm text-becker-slate">
+              Testa o envio das mensagens sem precisar esperar 1h/24h/72h. Usa produtos reais do banco e salva o carrinho pra ficar no histórico.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch">
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="Seu WhatsApp (ex: 81999998888)"
+            value={testWhatsapp}
+            onChange={(e) => setTestWhatsapp(e.target.value)}
+            className="flex-1 border-2 border-becker-line rounded-xl px-4 py-2.5 focus:border-becker-purple outline-none"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => sendTestMessage('1h')}
+              disabled={testSending || !testWhatsapp}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-xl disabled:opacity-50 text-sm"
+            >
+              📩 Testar 1h
+            </button>
+            <button
+              onClick={() => sendTestMessage('24h')}
+              disabled={testSending || !testWhatsapp}
+              className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-4 py-2.5 rounded-xl disabled:opacity-50 text-sm"
+            >
+              📩 Testar 24h
+            </button>
+            <button
+              onClick={() => sendTestMessage('72h')}
+              disabled={testSending || !testWhatsapp}
+              className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2.5 rounded-xl disabled:opacity-50 text-sm"
+            >
+              📩 Testar 72h
+            </button>
+          </div>
+        </div>
+
+        {testResult && (
+          <div
+            className={`mt-3 p-3 rounded-xl text-sm ${
+              testResult.type === 'success'
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-red-100 text-red-800 border border-red-200'
+            }`}
+          >
+            {testResult.message}
+          </div>
+        )}
+
+        <details className="mt-3 text-xs text-becker-slate">
+          <summary className="cursor-pointer font-semibold">💡 Como testar o fluxo completo (carrinho real abandonado)</summary>
+          <ol className="list-decimal pl-5 mt-2 space-y-1">
+            <li>Abra a loja em aba anônima: <a href="/" className="underline">becker.pscode.ia.br</a></li>
+            <li>Adicione 1-2 produtos ao carrinho</li>
+            <li>Vá no checkout e digite SEU WhatsApp no step 1</li>
+            <li>Volte aqui e veja o carrinho aparecer na lista abaixo</li>
+            <li>Use o botão "⚡ Processar agora" pra forçar envio (vai dar 401 se CRON_TOKEN não tá no Easypanel, mas dá pra testar manual com botões acima)</li>
+            <li>Verifique se WhatsApp chegou no seu celular</li>
+          </ol>
+        </details>
       </div>
 
       {/* Stats */}
