@@ -29,6 +29,12 @@ export interface BackupInfo {
 
 /**
  * Faz backup do banco via pg_dump
+ *
+ * Bug fix 2026-08-09: a versão anterior usava `pg_dump | gzip > file`, que
+ * silenciava erros do pg_dump (gzip criava header de 20 bytes mesmo com
+ * input vazio e exit code 0). Agora: pg_dump escreve direto em .sql,
+ * validamos tamanho mínimo, depois gzipamos. stderr é capturado pra
+ * diagnóstico.
  */
 export async function runBackup(): Promise<BackupResult> {
   const databaseUrl = process.env.DATABASE_URL;
@@ -45,42 +51,77 @@ export async function runBackup(): Promise<BackupResult> {
   const [, dbUser, dbPass, dbHost, dbPort, dbName] = match;
   const port = dbPort || '5432';
   const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
-  const filename = `becker_${timestamp}.sql.gz`;
-  const filepath = path.join(BACKUP_DIR, filename);
+  const baseName = `becker_${timestamp}`;
+  const sqlFile = path.join(BACKUP_DIR, `${baseName}.sql`);
+  const gzFile = path.join(BACKUP_DIR, `${baseName}.sql.gz`);
 
   // Garante que diretório existe
   await fs.mkdir(BACKUP_DIR, { recursive: true });
 
+  // Sanity check: pg_dump disponível?
   try {
-    // Executa pg_dump
+    const { stdout: pgVer } = await execAsync('pg_dump --version');
+    console.log(`[backup] pg_dump: ${pgVer.trim()}`);
+  } catch (e: any) {
+    return { ok: false, error: `pg_dump não disponível no PATH: ${e.message}` };
+  }
+
+  try {
+    // 1) pg_dump escreve direto em .sql (sem pipe) — exit code é real
     const env = { ...process.env, PGPASSWORD: dbPass };
-    const command = `pg_dump -h ${dbHost} -p ${port} -U ${dbUser} -d ${dbName} --no-owner --no-privileges --clean --if-exists | gzip > "${filepath}"`;
+    const dumpCmd = `pg_dump -h ${dbHost} -p ${port} -U ${dbUser} -d ${dbName} --no-owner --no-privileges --clean --if-exists -f "${sqlFile}"`;
 
-    await execAsync(command, { env, maxBuffer: 100 * 1024 * 1024 });
-
-    // Verifica tamanho
-    const stats = await fs.stat(filepath);
-
-    if (stats.size === 0) {
-      await fs.unlink(filepath).catch(() => {});
-      return { ok: false, error: 'Backup gerado vazio' };
+    let dumpStderr = '';
+    try {
+      const result = await execAsync(dumpCmd, { env, maxBuffer: 100 * 1024 * 1024 });
+      dumpStderr = result.stderr || '';
+    } catch (e: any) {
+      // Captura stderr real (em vez de mascarar com pipe)
+      const stderr = e.stderr || e.stdout || e.message;
+      await fs.unlink(sqlFile).catch(() => {});
+      return {
+        ok: false,
+        error: `pg_dump falhou: ${stderr}`.slice(0, 500),
+      };
     }
 
-    // Limpa backups antigos
+    // 2) Valida que o .sql tem conteúdo real
+    const sqlStats = await fs.stat(sqlFile);
+    if (sqlStats.size < 1024) {
+      await fs.unlink(sqlFile).catch(() => {});
+      return {
+        ok: false,
+        error: `pg_dump gerou arquivo suspeito (${sqlStats.size} bytes). stderr: ${dumpStderr.slice(0, 300)}`,
+      };
+    }
+
+    // 3) Gzipa o .sql -> .sql.gz
+    await execAsync(`gzip -f "${sqlFile}"`);
+
+    // gzip -f remove o .sql e cria .sql.gz
+    const gzStats = await fs.stat(gzFile);
+    if (gzStats.size < 100) {
+      await fs.unlink(gzFile).catch(() => {});
+      return { ok: false, error: `gzip produziu arquivo pequeno demais (${gzStats.size} bytes)` };
+    }
+
+    // 4) Limpa backups antigos
     await cleanOldBackups();
 
-    console.log(`[backup] ✅ Backup criado: ${filename} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+    console.log(
+      `[backup] ✅ ${baseName}.sql.gz (${(gzStats.size / 1024 / 1024).toFixed(2)}MB) | stderr: ${dumpStderr.slice(0, 100) || 'limpo'}`
+    );
 
     return {
       ok: true,
-      filename,
-      sizeBytes: stats.size,
+      filename: `${baseName}.sql.gz`,
+      sizeBytes: gzStats.size,
       timestamp: new Date().toISOString(),
     };
   } catch (e: any) {
     console.error('[backup] ❌ Erro:', e.message);
-    // Remove arquivo parcial se existir
-    await fs.unlink(filepath).catch(() => {});
+    await fs.unlink(sqlFile).catch(() => {});
+    await fs.unlink(gzFile).catch(() => {});
     return { ok: false, error: e.message };
   }
 }
