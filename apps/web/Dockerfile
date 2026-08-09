@@ -3,14 +3,22 @@
 # Force rebuild 2026-08-05 12:35
 # Force rebuild Sprint 7 - LGPD + Segurança (2026-08-08)
 # Force rebuild Sprint 9 - Cart Recovery (aplica DB schema no startup) 2026-08-08
+# Force rebuild 2026-08-09: pg_dump 17 (server PG é 17.10) + fix de backup
 # Becker E-commerce - Dockerfile simplificado
 FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-# Instala OpenSSL pro Prisma + postgresql-client (backup) + dumb-init
+# Instala OpenSSL pro Prisma + postgresql-client-17 (compatível com server PG 17) + dumb-init
+# O bookworm-slim só tem postgresql-client-15 nos repos default, então adicionamos o repo oficial pgdg
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ca-certificates postgresql-client \
+    ca-certificates curl gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+       openssl ca-certificates postgresql-client-17 dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # Habilita pnpm 9
