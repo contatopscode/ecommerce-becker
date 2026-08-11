@@ -55,3 +55,62 @@ export async function sendWhatsApp(options: SendTextOptions): Promise<{ success:
     return { success: false, error: e.message };
   }
 }
+
+/**
+ * Busca o pushName (nome que o contato usa no WhatsApp) via Evolution API.
+ * Só funciona se esse número já teve alguma interação com a instância
+ * (mandou mensagem, foi adicionado, etc). Retorna null se nunca falou.
+ *
+ * Endpoint: POST /chat/findContacts/{instance}
+ * Body: { "where": { "key": { "remoteJid": "<number>@s.whatsapp.net" } } }
+ */
+export async function lookupPushName(phone: string): Promise<string | null> {
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+    return null;
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  // Tenta vários formatos: 11 dígitos (DDD+num) e 13 dígitos (55+DDD+9+num)
+  const candidates = [
+    digits,
+    digits.length === 11 ? `55${digits}` : digits,
+    // Tira o 9 se for 13 dígitos: 55 81 9 999441333 -> 55 81 999441333
+    digits.length === 13 && digits.startsWith('55')
+      ? digits.slice(0, 4) + digits.slice(5)
+      : digits,
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(
+        `${EVOLUTION_API_URL}/chat/findContacts/${EVOLUTION_INSTANCE}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: EVOLUTION_API_KEY,
+          },
+          body: JSON.stringify({
+            where: { key: { remoteJid: `${candidate}@s.whatsapp.net` } },
+          }),
+        }
+      );
+      if (!res.ok) continue;
+      const contacts = await res.json();
+      if (Array.isArray(contacts) && contacts.length > 0) {
+        const c = contacts[0];
+        // pushName é o nome que o contato cadastrou no WhatsApp
+        // name pode ser o nome salvo localmente no app
+        // verifiedName é o nome comercial verificado
+        const name = c.pushName || c.name || c.verifiedName;
+        if (name && typeof name === 'string' && name.trim()) {
+          return name.trim();
+        }
+      }
+    } catch {
+      // Silencia e tenta próximo formato
+    }
+  }
+
+  return null;
+}

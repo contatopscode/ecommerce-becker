@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { randomBytes } from 'crypto';
 import { notifyNewLead } from '@/lib/notify';
+import { lookupPushName } from '@/lib/whatsapp-client';
 
 function formatWhatsApp(phone: string) {
   const cleaned = phone.replace(/\D/g, '').slice(0, 11);
@@ -54,14 +55,17 @@ export async function GET(req: NextRequest) {
 
     if (!user) {
       // PRÉ-CADASTRO automático (lead capture)
-      // Cria o cliente com nome padrão baseado no número
+      // Tenta buscar o pushName real na Evolution API (se o número já conversou conosco)
+      // Fallback pra "Cliente 1333" se Evolution não souber
       isNewLead = true;
       const id = randomBytes(12).toString('hex');
+      const pushName = await lookupPushName(whatsappDigits);
+      const finalName = pushName || `Cliente ${whatsappDigits.slice(-4)}`;
       try {
         user = await prisma.user.create({
           data: {
             id,
-            name: `Cliente ${whatsappDigits.slice(-4)}`, // "Cliente 1333"
+            name: finalName,
             whatsapp: whatsappFormatted,
             role: 'CUSTOMER',
           },
@@ -116,6 +120,10 @@ export async function GET(req: NextRequest) {
         orderCount: user.orders.length,
         isFirstPurchase: user.orders.length === 0,
         isNewLead,
+        // suggestedName: nome real (pushName) se a Evolution souber,
+        // senão o nome já cadastrado. Frontend usa pra pré-preencher o input
+        // Nome no checkout (UX: cliente não precisa digitar o próprio nome)
+        suggestedName: user.name,
       },
     });
   } catch (e: any) {

@@ -35,6 +35,8 @@ interface CustomerData {
   address: any;
   orderCount: number;
   isFirstPurchase: boolean;
+  isNewLead?: boolean;
+  suggestedName?: string;
 }
 
 interface ShippingOption {
@@ -145,11 +147,11 @@ export default function CheckoutPage() {
 
       if (data.ok && data.customer) {
         setCustomer(data.customer);
-        // Se é lead novo, deixa campo nome vazio pra digitar
-        if (!data.customer.isNewLead) {
-          setName(data.customer.name);
-        } else {
-          setName('');
+        // Pré-preenche o nome. Pra cliente existente usa o cadastrado.
+        // Pra lead novo, usa o suggestedName do backend (pushName vindo da
+        // Evolution API, ou fallback "Cliente 1333") — sempre editável.
+        if (data.customer.suggestedName) {
+          setName(data.customer.suggestedName);
         }
         if (data.customer.email) setEmail(data.customer.email);
         if (data.customer.address) {
