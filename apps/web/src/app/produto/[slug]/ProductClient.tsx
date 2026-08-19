@@ -4,11 +4,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCart, toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { calcShippingAction } from '@/lib/actions';
+import { getCustomerHintClient, type CustomerHint } from '@/lib/cookie-helpers';
 
 interface ProductVersion {
   id: string;
@@ -51,6 +52,13 @@ export function ProductClient({ product }: Props) {
   const [shipping, setShipping] = useState<{ price: number; days: string; carrier: string } | null>(null);
   const [loadingShipping, setLoadingShipping] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  // SPRINT 10: 1-clique — detecta se cliente já comprou antes
+  const [customerHint, setCustomerHint] = useState<CustomerHint | null>(null);
+
+  useEffect(() => {
+    // Roda só no client (getCustomerHintClient usa document)
+    setCustomerHint(getCustomerHintClient());
+  }, []);
 
   const onSale = selectedVersion.originalPrice && Number(selectedVersion.originalPrice) > Number(selectedVersion.price);
   const disc = onSale ? Math.round((1 - Number(selectedVersion.price) / Number(selectedVersion.originalPrice)) * 100) : 0;
@@ -73,7 +81,14 @@ export function ProductClient({ product }: Props) {
 
   const buyNow = () => {
     addToCart();
-    window.location.href = '/checkout';
+    // SPRINT 10: Se cliente tem hint (já comprou antes) → vai com ?fast=1
+    // pra pular identificação e ir direto pro step 2/3 com tudo pré-preenchido.
+    // Cliente novo (sem hint) → vai pro fluxo normal (step 1 de identificação).
+    if (customerHint?.whatsapp) {
+      window.location.href = '/checkout?fast=1';
+    } else {
+      window.location.href = '/checkout';
+    }
   };
 
   const calcCep = async () => {
@@ -208,9 +223,10 @@ export function ProductClient({ product }: Props) {
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
           <button
             onClick={buyNow}
-            className="bg-becker-orange hover:brightness-95 transition text-white font-bold py-4 rounded-full text-lg shadow-pop"
+            className="bg-becker-orange hover:brightness-95 transition text-white font-bold py-4 rounded-full text-lg shadow-pop relative"
+            title={customerHint ? '1-clique: seus dados já estão salvos' : 'Ir pro checkout'}
           >
-            Comprar agora
+            {customerHint ? '⚡ Comprar em 1-clique' : 'Comprar agora'}
           </button>
           <button
             onClick={addToCart}
