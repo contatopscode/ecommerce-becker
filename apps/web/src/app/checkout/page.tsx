@@ -9,14 +9,20 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCart, toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
+import {
+  getCustomerHintClient,
+  setCustomerHintClient,
+  type CustomerHint,
+} from '@/lib/cookie-helpers';
+import { decideCheckoutStart, digitsToWhatsapp } from '@/lib/checkout-flow';
 
 interface AddressData {
   cep: string;
@@ -70,13 +76,40 @@ function formatCep(v: string) {
 }
 
 export default function CheckoutPage() {
+  // Next 15: useSearchParams() precisa de Suspense boundary no build
+  return (
+    <Suspense fallback={<CheckoutFallback />}>
+      <CheckoutPageContent />
+    </Suspense>
+  );
+}
+
+function CheckoutFallback() {
+  return (
+    <>
+      <Header />
+      <main className="bg-becker-cream min-h-screen grid place-items-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-becker-purple border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="text-becker-slate text-sm">Carregando checkout...</div>
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+function CheckoutPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const cart = useCart();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
+  const [isFastPath, setIsFastPath] = useState(false);
+  const oneClickInitRef = useRef(false);
 
   // Form state
   const [whatsapp, setWhatsapp] = useState('');
@@ -100,6 +133,43 @@ export default function CheckoutPage() {
       router.push('/carrinho');
     }
   }, [cart.items.length]);
+
+  // ============ SPRINT 10: 1-CLIQUE — DETECÇÃO INICIAL ============
+  // Roda 1x no mount. Lê ?fast=1 + cookie, decide o step inicial.
+  const searchByWhatsappRef = useRef<((phone: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    if (oneClickInitRef.current) return;
+    oneClickInitRef.current = true;
+
+    const fastParam = searchParams.get('fast') === '1';
+    const hint: CustomerHint | null = getCustomerHintClient();
+    const decision = decideCheckoutStart({ hint, fastParam });
+
+    if (decision.toastMessage) {
+      // Adia o toast pra não conflitar com o "carregando" inicial
+      setTimeout(() => toast(decision.toastMessage!, 'info'), 400);
+    }
+
+    // Se tem hint E (fast=1 OU é cliente recorrente), pré-preenche o WhatsApp
+    if (hint?.whatsapp) {
+      setWhatsapp(digitsToWhatsapp(hint.whatsapp));
+      if (hint.name) setName(hint.name);
+      setIsFastPath(decision.isFastPath);
+
+      // Se fast=1, busca cliente agora e pula direto pro step 2 (endereço)
+      if (fastParam) {
+        setIsFastPath(true);
+        // Auto-trigger da busca por whatsapp (vai popular customer + endereço)
+        // O useEffect de "whatsapp muda" cuida do resto
+      }
+    }
+
+    // Ajusta step inicial: se fast=1, pula step 1 (identificação já tá feita)
+    if (decision.initialStep > 1) {
+      setStep(decision.initialStep);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calcula totais
   const subtotal = useMemo(
@@ -172,6 +242,16 @@ export default function CheckoutPage() {
           toast(`Bem-vindo de volta, ${data.customer.name.split(' ')[0]}!`, 'success');
         }
 
+        // SPRINT 10: Salva o cookie de hint pro 1-clique em visitas futuras
+        try {
+          setCustomerHintClient({
+            whatsapp: cleaned,
+            name: data.customer.name,
+          });
+        } catch (e) {
+          // best-effort, não bloqueia checkout
+        }
+
         // SPRINT 4: NÃO pula automaticamente (cliente pode querer outro endereço)
         // Só vai pro step 2 (que tem o endereço pré-preenchido pra editar)
         if (
@@ -183,6 +263,40 @@ export default function CheckoutPage() {
           // Cliente pode editar se quiser mandar pra outro lugar
           setStep(2);
           toast('📍 Seu último endereço está preenchido. Quer enviar pra outro lugar?', 'info');
+        }
+
+        // SPRINT 10: 1-CLIQUE FAST-PATH
+        // Se cliente é recorrente (tem pedido) + tem endereço + veio de ?fast=1
+        // → pula direto pro step 3 (entrega) com auto-cálculo de frete
+        if (
+          searchParams.get('fast') === '1' &&
+          !data.customer.isNewLead &&
+          !data.customer.isFirstPurchase &&
+          data.customer.address?.cep &&
+          data.customer.orderCount && data.customer.orderCount > 0
+        ) {
+          setStep(3);
+          // Auto-calcular frete em background
+          setTimeout(() => {
+            // Dispara o cálculo de frete sem bloquear UI
+            fetch('/api/shipping/calculate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                cep: onlyDigits(data.customer.address.cep),
+                items: cart.items.map((i) => ({ versionId: i.versionId, qty: i.qty })),
+                orderTotal: cart.items.reduce((sum, i) => sum + (i.price || 0) * i.qty, 0),
+              }),
+            })
+              .then((r) => r.json())
+              .then((d) => {
+                if (d.ok && d.options?.length > 0) {
+                  setShippingOption(d.options[0]);
+                  toast('⚡ Frete calculado! É só escolher como pagar.', 'success');
+                }
+              })
+              .catch(() => {});
+          }, 300);
         }
       } else {
         setCustomer(null);
