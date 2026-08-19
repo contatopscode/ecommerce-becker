@@ -151,6 +151,8 @@ model Order {
   items          OrderItem[]
   addressId      String?
   address        Address?       @relation(fields: [addressId], references: [id])
+  // SPRINT 12: sistema interno de entrega
+  delivery       Delivery?
 
   subtotal       Decimal        @db.Decimal(10, 2)
   shipping       Decimal        @db.Decimal(10, 2)
@@ -395,6 +397,68 @@ model KitItem {
 
   @@index([kitId])
   @@index([productId])
+}
+
+// ============ DELIVERY (Sprint 12) ============
+// Sistema interno de entrega: motoboy parceiro confirma via WhatsApp
+// Fluxo:
+//   1. Admin marca pedido como SHIPPED
+//   2. Sistema cria Delivery (status: OUT_FOR_DELIVERY) + envia WhatsApp
+//      "Seu pedido saiu pra entrega" com botão "Confirmar" / "Problema"
+//   3. Cliente clica "Recebi OK" → status: DELIVERED + WhatsApp obrigado
+//   4. Cliente clica "Problema" → status: DELIVERED_WITH_ISSUE + notif admin
+//   5. Cron a cada 24h: se ainda OUT_FOR_DELIVERY → envia lembrete
+model Delivery {
+  id            String         @id @default(cuid())
+  orderId       String         @unique
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Status
+  status        DeliveryStatus @default(PENDING)
+  // Token público (pra URLs de confirmação sem auth)
+  confirmToken  String         @unique @default(cuid())
+  // Contato do motoboy (informativo, preenchido pelo admin)
+  motoboyName   String?
+  motoboyPhone  String?
+  // Timestamps
+  outForDeliveryAt DateTime?
+  deliveredAt      DateTime?
+  problemAt        DateTime?
+  problemNote      String?   // texto do problema reportado pelo cliente
+  lastReminderAt   DateTime?
+  // Histórico
+  events        DeliveryEvent[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([status])
+  @@index([confirmToken])
+  @@index([outForDeliveryAt])
+}
+
+enum DeliveryStatus {
+  PENDING              // Aguardando sair pra entrega
+  OUT_FOR_DELIVERY     // Saiu, motoboy a caminho
+  DELIVERED            // Cliente confirmou recebimento OK
+  DELIVERED_WITH_ISSUE // Cliente confirmou mas reportou problema
+  FAILED               // Não foi possível entregar
+}
+
+model DeliveryEvent {
+  id          String   @id @default(cuid())
+  deliveryId  String
+  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  // Tipo do evento
+  type        String   // 'out_for_delivery' | 'confirmed_ok' | 'problem' | 'reminder' | 'failed' | 'manual_update'
+  // Quem causou (cliente via link / admin / cron)
+  actor       String   // 'customer' | 'admin' | 'cron' | 'system'
+  // Mensagem / nota
+  message     String?  @db.Text
+  // Metadata extra
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([deliveryId])
+  @@index([createdAt])
 }
 
 // ============ SETTINGS ============

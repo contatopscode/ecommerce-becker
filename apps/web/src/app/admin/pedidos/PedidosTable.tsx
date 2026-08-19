@@ -113,7 +113,7 @@ export function PedidosTable({ orders }: { orders: Order[] }) {
               return (
                 <tr key={o.id} className="border-t border-becker-line">
                   <td className="px-4 py-3">
-                    <Link href={`/pedido/${o.number}`} className="font-mono text-xs text-becker-purple font-semibold hover:underline">
+                    <Link href={`/admin/pedidos/${o.id}`} className="font-mono text-xs text-becker-purple font-semibold hover:underline">
                       {o.number}
                     </Link>
                     <div className="text-[10px] text-becker-slate">
