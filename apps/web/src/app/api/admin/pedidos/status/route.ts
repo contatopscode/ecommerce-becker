@@ -8,6 +8,7 @@ import { prisma } from '@becker/db';
 import { getSession } from '@/lib/auth/session';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { notifyOrder } from '@/lib/notify';
+import { createOutForDelivery } from '@/lib/delivery';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Não autorizado' }, { status: 403 });
     }
 
-    const { orderId, status, tracking } = await req.json();
+    const { orderId, status, tracking, motoboyName, motoboyPhone } = await req.json();
     if (!orderId || !status) {
       return NextResponse.json({ ok: false, error: 'orderId e status obrigatórios' }, { status: 400 });
     }
@@ -63,6 +64,20 @@ export async function POST(req: NextRequest) {
         });
       } catch (e) {
         console.error('Erro ao notificar cliente:', e);
+      }
+    }
+
+    // SPRINT 12: Quando vira SHIPPED, cria Delivery + envia WhatsApp "saiu pra entrega"
+    if (status === 'SHIPPED') {
+      try {
+        await createOutForDelivery({
+          orderId: order.id,
+          motoboyName,
+          motoboyPhone,
+          actor: 'admin',
+        });
+      } catch (e) {
+        console.error('[pedidos/status] createOutForDelivery error:', e);
       }
     }
 

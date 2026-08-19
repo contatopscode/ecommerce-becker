@@ -158,4 +158,79 @@ Que tal finalizar? Os produtos podem acabar! 🏃
 
 💜 Becker`;
   },
+
+  // ============ DELIVERY (Sprint 12) ============
+
+  /** Pedido saiu pra entrega (motoboy a caminho) */
+  deliveryOutForDelivery: (o: {
+    customerName: string;
+    orderNumber: string;
+    motoboyName?: string;
+    address: { street: string; number: string; neighborhood: string; city: string; state: string };
+    confirmUrl: string;
+    problemUrl: string;
+  }) => {
+    return `🚚 *Seu pedido saiu pra entrega!*
+
+Olá, *${o.customerName.split(' ')[0]}*!
+
+O pedido *${o.orderNumber}* está a caminho. 🏍️
+${o.motoboyName ? `\nMotoboy: *${o.motoboyName}*` : ''}
+
+📍 *Endereço:*
+${o.address.street}, ${o.address.number}
+${o.address.neighborhood} — ${o.address.city}/${o.address.state}
+
+Quando o motoboy chegar, me avisa por aqui:
+
+✅ *Recebi OK* → ${o.confirmUrl}
+⚠️ *Tive problema* → ${o.problemUrl}
+
+💜 Becker`;
+  },
+
+  /** Cliente confirmou recebimento OK */
+  deliveryConfirmedThanks: (o: { customerName: string; orderNumber: string }) => {
+    return `✅ *Oba! Recebemos a confirmação!*
+
+Valeu, *${o.customerName.split(' ')[0]}*! 🥳
+
+Pedido *${o.orderNumber}* entregue com sucesso. Esperamos que você ame os produtos!
+
+Que tal nos avaliar? Sua opinião faz a diferença 💜
+👉 https://becker.pscode.ia.br/conta/pedidos
+
+Obrigado por comprar na Becker! Até a próxima 🚀
+— Equipe Becker`;
+  },
+
+  /** Cliente reportou problema na entrega */
+  deliveryProblemReceived: (o: { customerName: string; orderNumber: string }) => {
+    return `⚠️ *Problema registrado*
+
+${o.customerName.split(' ')[0]}, recebemos seu aviso sobre o pedido *${o.orderNumber}*.
+
+Nossa equipe vai te chamar aqui no WhatsApp nos próximos minutos pra resolver. Sem stress, vamos resolver juntos! 💪
+
+— Equipe Becker`;
+  },
+
+  /** Lembrete 24h após saída pra entrega (sem confirmação) */
+  deliveryReminder24h: (o: {
+    customerName: string;
+    orderNumber: string;
+    confirmUrl: string;
+    problemUrl: string;
+  }) => {
+    return `📦 *Oi, ${o.customerName.split(' ')[0]}!*
+
+Tudo certo com seu pedido *${o.orderNumber}*? 
+
+Ainda não recebemos a confirmação de entrega. O motoboy pode ter passado por aí e a gente quer garantir que você recebeu tudo certinho. 😊
+
+✅ *Tô com o pedido* → ${o.confirmUrl}
+⚠️ *Tive problema* → ${o.problemUrl}
+
+— Equipe Becker`;
+  },
 };

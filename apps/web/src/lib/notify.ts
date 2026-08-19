@@ -209,3 +209,35 @@ export async function notifyNewLead(lead: { name: string; whatsapp: string; sour
     return { ok: false, error: e.message };
   }
 }
+
+// ============ DELIVERY (Sprint 12) ============
+
+/**
+ * Notifica admin sobre evento de entrega
+ */
+export async function notifyAdminDelivery(input: {
+  orderNumber: string;
+  event: 'out_for_delivery' | 'problem';
+  motoboyName?: string;
+  problemNote?: string;
+}) {
+  try {
+    let msg = '';
+    if (input.event === 'out_for_delivery') {
+      msg = `🚚 *Pedido ${input.orderNumber} saiu pra entrega!*\n${
+        input.motoboyName ? `Motoboy: ${input.motoboyName}` : ''
+      }`.trim();
+    } else if (input.event === 'problem') {
+      msg = `⚠️ *Problema na entrega do pedido ${input.orderNumber}!*\n${
+        input.problemNote ? `Cliente disse: "${input.problemNote}"` : 'Cliente reportou problema'
+      }\n\nEntre em contato com o cliente URGENTE!`;
+    }
+    if (msg) {
+      return await notifyAdmin(msg);
+    }
+    return { ok: false, error: 'evento sem mensagem' };
+  } catch (e: any) {
+    console.error('[notify] Delivery error:', e.message);
+    return { ok: false, error: e.message };
+  }
+}
