@@ -230,7 +230,29 @@ model OrderItem {
   qty          Int
   total        Decimal @db.Decimal(10, 2)
 
+  // SPRINT 11: Se esse item é um kit, referencia o Kit vendido
+  // (null = produto unitário, setado = kit)
+  kitId        String?
+  // Snapshot dos itens do kit no momento da venda
+  // (preço/nome podem mudar no futuro; o pedido mantém o histórico)
+  kitItems     OrderItemKitItem[]
+
   @@index([orderId])
+  @@index([kitId])
+}
+
+model OrderItemKitItem {
+  id           String  @id @default(cuid())
+  orderItemId  String
+  orderItem    OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  productId    String
+  productName  String
+  versionId    String?
+  versionLabel String?
+  qty          Int
+  unitPrice    Decimal  @db.Decimal(10, 2)  // preço unitário do item no momento
+
+  @@index([orderItemId])
 }
 
 // ============ COUPONS ============
@@ -328,6 +350,51 @@ model CartRecovery {
   @@index([expiresAt])
   @@index([converted])
   @@index([lastSeenAt])
+}
+
+// ============ KITS (Sprint 11) ============
+// Bundles pré-montados de produtos Becker com desconto
+// Ex: "Kit Limpeza Básica" = Limpador Multiuso + Desinfetante
+// O cliente compra 1 produto (o kit) e recebe todos os itens
+model Kit {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String     @db.Text
+  shortDescription String?
+  image       String?    // URL da imagem do kit (montada)
+  category    String?    // "limpeza", "cozinha", "banheiro", "lavanderia", "casa"
+  // Preço
+  price       Decimal    @db.Decimal(10, 2)  // preço promocional do kit
+  originalPrice Decimal  @db.Decimal(10, 2)  // soma dos itens sem desconto
+  discountPercent Int    @default(0)
+  // Metadata
+  isActive    Boolean    @default(true)
+  isFeatured  Boolean    @default(false)
+  order       Int        @default(0)
+  // Itens do kit
+  items       KitItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([category])
+}
+
+model KitItem {
+  id          String  @id @default(cuid())
+  kitId       String
+  kit         Kit     @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  productId   String
+  // Snapshot do produto no momento da venda
+  productName String
+  versionId   String?
+  versionLabel String?
+  qty         Int     @default(1)
+
+  @@index([kitId])
+  @@index([productId])
 }
 
 // ============ SETTINGS ============

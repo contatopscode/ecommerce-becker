@@ -44,32 +44,90 @@ export async function POST(req: NextRequest) {
     const safeShippingMethod = shippingMap[shipping?.id] || 'free';
 
     // Calcular totais
-    const versionIds = items.map((i: any) => i.versionId);
-    const versions = await prisma.productVersion.findMany({
-      where: { id: { in: versionIds } },
-      include: { product: true },
-    });
+    // SPRINT 11: Suporte a kits (item.isKit = true, versionId = "kit-{slug}")
+    const regularVersionIds = items
+      .filter((i: any) => !i.isKit && i.versionId)
+      .map((i: any) => i.versionId);
+    const kitSlugs = items
+      .filter((i: any) => i.isKit && i.versionId?.startsWith('kit-'))
+      .map((i: any) => i.versionId.replace(/^kit-/, ''));
+
+    const [versions, kits] = await Promise.all([
+      regularVersionIds.length > 0
+        ? prisma.productVersion.findMany({
+            where: { id: { in: regularVersionIds } },
+            include: { product: true },
+          })
+        : Promise.resolve([]),
+      kitSlugs.length > 0
+        ? prisma.kit.findMany({
+            where: { slug: { in: kitSlugs } },
+            include: { items: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
     const vMap = new Map(versions.map((v) => [v.id, v]));
+    const kMap = new Map(kits.map((k) => [k.slug, k]));
 
     let subtotal = 0;
-    const orderItems: any[] = [];
+    // Cada item regular vira 1 entry; cada kit vira 1 entry com kitItems aninhado
+    const orderItemsData: any[] = [];
+    // Mapa de kitSlug → lista de OrderItemKitItem
+    const kitItemsByKitSlug: Record<string, any[]> = {};
+
     for (const item of items) {
-      const v = vMap.get(item.versionId);
-      if (!v) continue;
-      const price = Number(v.price);
-      const total = price * item.qty;
-      subtotal += total;
-      orderItems.push({
-        productId: v.productId,
-        versionId: v.id,
-        productName: v.product.name,
-        versionLabel: v.label,
-        sku: v.sku,
-        price,
-        qty: item.qty,
-        total,
-      });
+      if (item.isKit) {
+        // Item é um kit
+        const kitSlug = item.versionId?.replace(/^kit-/, '');
+        const kit = kMap.get(kitSlug);
+        if (!kit) continue;
+        const price = Number(kit.price);
+        const total = price * item.qty;
+        subtotal += total;
+
+        // Snapshot dos itens do kit (pro pedido manter histórico)
+        const kitItemSnapshots = kit.items.map((ki) => ({
+          productId: ki.productId,
+          productName: ki.productName,
+          versionId: ki.versionId,
+          versionLabel: ki.versionLabel,
+          qty: ki.qty * item.qty,
+          unitPrice: 0, // preço unitário não é exposto no kit
+        }));
+        kitItemsByKitSlug[kit.slug] = kitItemSnapshots;
+
+        orderItemsData.push({
+          productId: kit.id, // usa o id do kit como productId
+          versionId: kit.id, // fallback
+          productName: kit.name,
+          versionLabel: `Kit com ${kit.items.length} ${kit.items.length === 1 ? 'item' : 'itens'}`,
+          sku: `KIT-${kit.slug.toUpperCase()}`,
+          price,
+          qty: item.qty,
+          total,
+          kitId: kit.id,
+          // Nested create dos kitItems
+          kitItems: { create: kitItemSnapshots },
+        });
+      } else {
+        // Item regular
+        const v = vMap.get(item.versionId);
+        if (!v) continue;
+        const price = Number(v.price);
+        const total = price * item.qty;
+        subtotal += total;
+        orderItemsData.push({
+          productId: v.productId,
+          versionId: v.id,
+          productName: v.product.name,
+          versionLabel: v.label,
+          sku: v.sku,
+          price,
+          qty: item.qty,
+          total,
+        });
+      }
     }
 
     // Validar cupom se informado
@@ -166,7 +224,12 @@ export async function POST(req: NextRequest) {
         paymentMethod: safePaymentMethod,
         source: 'SITE',
         shippingMethod: safeShippingMethod,
-        items: { create: orderItems.map((i) => ({ ...i, id: randomBytes(12).toString('hex') })) },
+        items: {
+          create: orderItemsData.map((i) => ({
+            ...i,
+            id: randomBytes(12).toString('hex'),
+          })),
+        },
       },
     });
 

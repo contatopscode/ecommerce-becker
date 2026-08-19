@@ -19,6 +19,8 @@ export interface CartItem {
   originalPrice?: number | null;
   stock?: number;
   weight?: number;
+  // SPRINT 11: identifica se é um kit (id do kit vai em productId, versionId = "kit-{slug}")
+  isKit?: boolean;
 }
 
 interface CartState {
