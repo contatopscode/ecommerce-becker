@@ -108,6 +108,12 @@ export function Header() {
             >
               Ofertas 🔥
             </Link>
+            <Link
+              href="/kits"
+              className="px-3 py-2 rounded-lg text-becker-purple font-semibold"
+            >
+              Kits 🎁
+            </Link>
           </nav>
 
           <SearchBox />
