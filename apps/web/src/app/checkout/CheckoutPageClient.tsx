@@ -899,13 +899,13 @@ export default function CheckoutPageContent() {
 
                 <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
                   {cart.items.map((item) => (
-                    <div key={item.id} className="flex gap-2 text-sm">
+                    <div key={`${item.productId}-${item.versionId}`} className="flex gap-2 text-sm">
                       <div className="w-12 h-12 bg-becker-cream rounded-lg grid place-items-center overflow-hidden p-0.5">
                         {item.image && <img src={item.image} alt="" className="max-h-full" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold line-clamp-1">{item.name}</div>
-                        <div className="text-xs text-becker-slate">{item.qty}x {formatPrice(item.price)}</div>
+                        <div className="text-xs text-becker-slate">{item.qty}x {formatPrice(item.price ?? 0)}</div>
                       </div>
                     </div>
                   ))}
