@@ -5,8 +5,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart';
 import { SearchBox } from '@/components/SearchBox';
 
@@ -21,26 +21,10 @@ function categoryLabel(c: HeaderCategory) {
 }
 
 export function Header({ categories }: { categories: HeaderCategory[] }) {
-  const cart = useCart();
-  const router = useRouter();
   const pathname = usePathname();
-  const [search, setSearch] = useState('');
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const count = useCart((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) {
-      router.push(`/busca?q=${encodeURIComponent(search.trim())}`);
-    }
-  };
 
   // Esconde header no checkout (tela cheia)
   if (pathname === '/checkout') return null;

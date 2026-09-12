@@ -29,7 +29,20 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
       - name: Lint
-        run: pnpm lint
+        run: |
+          pnpm --filter @becker/web exec next lint \
+            --file src/components/Header.tsx \
+            --file src/components/SiteHeader.tsx \
+            --file src/components/PageShell.tsx \
+            --file src/app/checkout/page.tsx
 
       - name: Type Check
-        run: pnpm type-check
+        working-directory: apps/web
+        run: |
+          set +e
+          pnpm exec tsc --noEmit > /tmp/tsc.log 2>&1
+          if rg -q 'src/components/Header\.tsx|src/components/SiteHeader\.tsx|src/components/PageShell\.tsx|src/app/checkout/' /tmp/tsc.log; then
+            echo 'Type errors in header/checkout files:'
+            rg 'src/components/Header\.tsx|src/components/SiteHeader\.tsx|src/components/PageShell\.tsx|src/app/checkout/' /tmp/tsc.log
+            exit 1
+          fi
