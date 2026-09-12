@@ -3,7 +3,7 @@
 // ============================================================
 
 import { notFound } from 'next/navigation';
-import { Header } from '@/components/Header';
+import { SiteHeader } from '@/components/SiteHeader';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
@@ -34,7 +34,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   return (
     <>
-      <Header />
+      <SiteHeader />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-sm text-becker-slate mb-4">

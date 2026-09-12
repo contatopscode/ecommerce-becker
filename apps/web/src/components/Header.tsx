@@ -10,16 +10,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useCart } from '@/lib/cart';
 import { SearchBox } from '@/components/SearchBox';
 
-const CATEGORY_NAV = [
-  { slug: 'lava-roupas', label: 'Lava Roupas' },
-  { slug: 'multiuso', label: 'Multiuso' },
-  { slug: 'desinfetantes', label: 'Desinfetantes' },
-  { slug: 'alcool', label: 'Álcool' },
-  { slug: 'eco', label: '🌿 Eco' },
-  { slug: 'pro', label: 'Becker PRO' },
-];
+export type HeaderCategory = {
+  slug: string;
+  name: string;
+  icon?: string | null;
+};
 
-export function Header() {
+function categoryLabel(c: HeaderCategory) {
+  return c.icon ? `${c.icon} ${c.name}` : c.name;
+}
+
+export function Header({ categories }: { categories: HeaderCategory[] }) {
   const cart = useCart();
   const router = useRouter();
   const pathname = usePathname();
@@ -93,15 +94,21 @@ export function Header() {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1 ml-6 text-sm font-medium">
-            {CATEGORY_NAV.map((c) => (
+            {categories.map((c) => (
               <Link
                 key={c.slug}
                 href={`/categoria/${c.slug}`}
                 className="px-3 py-2 rounded-lg hover:bg-becker-purple-soft text-becker-ink"
               >
-                {c.label}
+                {categoryLabel(c)}
               </Link>
             ))}
+            <Link
+              href="/categoria/todos"
+              className="px-3 py-2 rounded-lg hover:bg-becker-purple-soft text-becker-ink"
+            >
+              Ver todas
+            </Link>
             <Link
               href="/ofertas"
               className="px-3 py-2 rounded-lg text-becker-orange font-semibold"
@@ -161,16 +168,23 @@ export function Header() {
         {menuOpen && (
           <div className="lg:hidden border-t border-becker-line bg-white">
             <nav className="px-4 py-3 grid gap-1">
-              {CATEGORY_NAV.map((c) => (
+              {categories.map((c) => (
                 <Link
                   key={c.slug}
                   href={`/categoria/${c.slug}`}
                   onClick={() => setMenuOpen(false)}
                   className="px-3 py-2.5 rounded-lg hover:bg-becker-purple-soft text-sm font-medium"
                 >
-                  {c.label}
+                  {categoryLabel(c)}
                 </Link>
               ))}
+              <Link
+                href="/categoria/todos"
+                onClick={() => setMenuOpen(false)}
+                className="px-3 py-2.5 rounded-lg hover:bg-becker-purple-soft text-sm font-medium"
+              >
+                Ver todas
+              </Link>
               <Link href="/ofertas" onClick={() => setMenuOpen(false)} className="px-3 py-2.5 rounded-lg text-becker-orange font-semibold text-sm">
                 Ofertas 🔥
               </Link>

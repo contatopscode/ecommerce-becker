@@ -2,14 +2,14 @@
 // PageShell - layout visual padrão (Header + main + Footer + WhatsApp)
 // ============================================================
 
-import { Header } from './Header';
+import { SiteHeader } from './SiteHeader';
 import { Footer } from './Footer';
 import { WhatsAppButton } from './WhatsAppButton';
 
 export function PageShell({ children, fullWidth = false }: { children: React.ReactNode; fullWidth?: boolean }) {
   return (
     <>
-      <Header />
+      <SiteHeader />
       <main className={fullWidth ? '' : 'min-h-[60vh]'}>{children}</main>
       <Footer />
       <WhatsAppButton />

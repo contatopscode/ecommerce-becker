@@ -3,7 +3,7 @@
 // ============================================================
 
 import Link from 'next/link';
-import { Header } from '@/components/Header';
+import { SiteHeader } from '@/components/SiteHeader';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
@@ -24,7 +24,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Header />
+      <SiteHeader />
 
       {/* HERO */}
       <section className="relative overflow-hidden">
