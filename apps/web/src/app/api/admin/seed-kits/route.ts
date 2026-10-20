@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await seedKits();
+    const result = await seedKits({ deactivateLegacy: true });
     return NextResponse.json({ ok: true, ...result });
   } catch (e: unknown) {
     console.error('[admin/seed-kits] Error:', e);

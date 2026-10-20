@@ -76,7 +76,15 @@ export interface SeedKitsResult {
   errors: string[];
 }
 
-export async function seedKits(): Promise<SeedKitsResult> {
+// Produtos criados antes desta data são do catálogo antigo; os criados depois (pelo admin) não são tocados
+const LEGACY_CUTOFF = new Date('2026-10-20T00:00:00Z');
+
+export interface SeedKitsOptions {
+  // Desativa kits/produtos do catálogo antigo. Só o endpoint admin (CRON_TOKEN) liga isso.
+  deactivateLegacy?: boolean;
+}
+
+export async function seedKits(options: SeedKitsOptions = {}): Promise<SeedKitsResult> {
   const result: SeedKitsResult = { created: [], updated: [], skipped: [], errors: [] };
 
   try {
@@ -209,18 +217,25 @@ export async function seedKits(): Promise<SeedKitsResult> {
     }
   }
 
-  // Catálogo só de kits: desativa kits e produtos que não fazem parte do catálogo atual
-  try {
-    await prisma.kit.updateMany({
-      where: { slug: { notIn: KITS.map((k) => k.slug) }, isActive: true },
-      data: { isActive: false },
-    });
-    await prisma.product.updateMany({
-      where: { active: true },
-      data: { active: false },
-    });
-  } catch (e: unknown) {
-    result.errors.push(`Desativação do catálogo antigo: ${e instanceof Error ? e.message : String(e)}`);
+  // Catálogo só de kits: desativa o catálogo antigo, apenas se todos os kits novos foram gravados sem erro
+  const kitsOk = result.errors.length === 0 && result.created.length + result.updated.length === KITS.length;
+  if (options.deactivateLegacy && kitsOk) {
+    try {
+      await prisma.kit.updateMany({
+        where: { slug: { notIn: KITS.map((k) => k.slug) }, isActive: true },
+        data: { isActive: false },
+      });
+      await prisma.product.updateMany({
+        where: {
+          active: true,
+          slug: { notIn: COMPONENTS.map((c) => c.slug) },
+          createdAt: { lt: LEGACY_CUTOFF },
+        },
+        data: { active: false },
+      });
+    } catch (e: unknown) {
+      result.errors.push(`Desativação do catálogo antigo: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
   return result;
