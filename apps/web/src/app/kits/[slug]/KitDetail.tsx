@@ -84,7 +84,7 @@ export function KitDetail({ kit }: KitDetailProps) {
     }
     setLoadingShipping(true);
     try {
-      const options = await calcShippingAction(cep, kit.price);
+      const options = await calcShippingAction(cep, [{ weight: 500, qty: 1 }], kit.price);
       if (options && options.length > 0) {
         setShipping({
           price: options[0]?.price || 0,

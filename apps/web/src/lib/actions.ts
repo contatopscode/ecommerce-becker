@@ -77,8 +77,12 @@ export async function fetchCategories() {
 }
 
 // ============ FRETE ============
-export async function calcShippingAction(cep: string, orderTotal: number) {
-  return (calculateShipping as unknown as (cep: string, orderTotal: number) => ReturnType<typeof calculateShipping>)(cep, orderTotal);
+export async function calcShippingAction(
+  cep: string,
+  items: { weight: number; qty: number }[],
+  orderTotal: number
+) {
+  return calculateShipping(cep, items, orderTotal);
 }
 
 // ============ PEDIDO ============
