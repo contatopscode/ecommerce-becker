@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@becker/db": "workspace:*",
-    "zod": "^3.24.1",
     "date-fns": "^4.1.0",
-    "nanoid": "^5.0.9"
+    "nanoid": "^5.0.9",
+    "openai": "^4",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/node": "^22.10.5",
     "typescript": "^5.7.3"
   }
 }

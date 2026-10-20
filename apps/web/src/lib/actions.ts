@@ -185,7 +185,7 @@ export async function createOrderAction(input: z.infer<typeof checkoutSchema>) {
       total,
       status: 'PENDING',
       paymentStatus: 'PENDING',
-      source: 'WEBSITE',
+      source: 'SITE',
       paymentMethod: parsed.paymentMethod,
       shippingMethod: parsed.shippingMethod,
       tracking,

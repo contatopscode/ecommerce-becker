@@ -32,7 +32,7 @@ interface CreateOrderInput {
     method: 'pix' | 'credit_card' | 'boleto';
   };
   coupon?: string;
-  source?: 'WEBSITE' | 'WHATSAPP' | 'ADMIN';
+  source?: 'SITE' | 'WHATSAPP' | 'ADMIN';
 }
 
 /**
@@ -123,7 +123,7 @@ export async function createOrder(input: CreateOrderInput) {
       total,
       status: 'PENDING',
       paymentStatus: 'PENDING',
-      source: input.source || 'WEBSITE',
+      source: input.source || 'SITE',
       paymentMethod: input.payment.method,
       shippingMethod: input.shipping.method,
       items: {
