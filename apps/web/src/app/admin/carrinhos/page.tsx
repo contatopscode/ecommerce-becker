@@ -87,7 +87,7 @@ export default function CarrinhosPage() {
       if (data.ok) {
         setTestResult({
           type: 'success',
-          message: `✅ ${type} enviado! ID: ${data.messageId} | Para: ${data.sentTo} | ${data.items} itens | ${formatPrice(data.subtotal)}`,
+          message: `✅ ${type} enviado! Para: ${data.sentTo} | ${data.items} itens | ${formatPrice(data.subtotal)}`,
         });
         loadCarts(); // recarrega pra mostrar o carrinho criado
       } else {

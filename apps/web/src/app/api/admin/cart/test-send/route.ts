@@ -148,7 +148,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      messageId: (result as { messageId?: string }).messageId,
       sentTo: fullPhone,
       type,
       items: items.length,
