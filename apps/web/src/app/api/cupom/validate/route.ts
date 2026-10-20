@@ -25,11 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
-    if ((coupon as { validFrom?: Date | null }).validFrom && (coupon as { validFrom?: Date | null }).validFrom! > now) {
-      return NextResponse.json({ ok: false, error: 'Cupom ainda não está válido' }, { status: 400 });
-    }
-
-    if ((coupon as { validUntil?: Date | null }).validUntil && (coupon as { validUntil?: Date | null }).validUntil! < now) {
+    if (coupon.expiresAt && coupon.expiresAt < now) {
       return NextResponse.json({ ok: false, error: 'Cupom expirado' }, { status: 400 });
     }
 
@@ -46,9 +42,9 @@ export async function POST(req: NextRequest) {
 
     // type pode ser 'percent' (desconto %) ou 'fixed' (valor fixo) ou 'shipping' (frete grátis)
     const percent = coupon.type === 'percent'
-      ? Number((coupon as { value?: unknown }).value)
+      ? coupon.discount
       : coupon.type === 'fixed'
-        ? (Number((coupon as { value?: unknown }).value) / orderTotal) * 100
+        ? (coupon.discount / orderTotal) * 100
         : 0;
 
     return NextResponse.json({
@@ -57,7 +53,7 @@ export async function POST(req: NextRequest) {
         code: coupon.code,
         type: coupon.type,
         percent: Math.round(percent),
-        value: Number((coupon as { value?: unknown }).value),
+        value: coupon.discount,
         minOrder: coupon.minOrder ? Number(coupon.minOrder) : null,
       },
     });

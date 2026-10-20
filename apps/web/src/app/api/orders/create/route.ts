@@ -130,11 +130,13 @@ export async function POST(req: NextRequest) {
 
     // Validar cupom se informado
     let discount = 0;
+    let freeShipping = false;
     if (cupom) {
       const c = await prisma.coupon.findUnique({ where: { code: cupom.toUpperCase() } });
       if (c && c.active) {
-        if (c.type === 'percent') discount = subtotal * (Number((c as { value?: unknown }).value) / 100);
-        else if (c.type === 'fixed') discount = Number((c as { value?: unknown }).value);
+        if (c.type === 'percent') discount = subtotal * (c.discount / 100);
+        else if (c.type === 'fixed') discount = c.discount;
+        else if (c.type === 'shipping') freeShipping = true;
         // Incrementar uso
         await prisma.coupon.update({
           where: { id: c.id },
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const shippingPrice = shipping?.price || 0;
+    const shippingPrice = freeShipping ? 0 : shipping?.price || 0;
     const total = subtotal - discount + shippingPrice;
 
     // Buscar ou criar usuário
