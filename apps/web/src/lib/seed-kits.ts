@@ -81,8 +81,8 @@ export async function seedKits(): Promise<SeedKitsResult> {
 
   try {
     await ensureComponentProducts();
-  } catch (e: any) {
-    result.errors.push(`Componentes: ${e.message || String(e)}`);
+  } catch (e: unknown) {
+    result.errors.push(`Componentes: ${e instanceof Error ? e.message : String(e)}`);
     return result;
   }
 
@@ -219,8 +219,8 @@ export async function seedKits(): Promise<SeedKitsResult> {
       where: { active: true },
       data: { active: false },
     });
-  } catch (e: any) {
-    result.errors.push(`Desativação do catálogo antigo: ${e.message || String(e)}`);
+  } catch (e: unknown) {
+    result.errors.push(`Desativação do catálogo antigo: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   return result;
