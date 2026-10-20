@@ -70,10 +70,10 @@ export async function GET(req: NextRequest) {
             role: 'CUSTOMER',
           },
           include: {
-            addresses: true,
-            orders: true,
+            addresses: { where: { isDefault: true }, take: 1 },
+            orders: { orderBy: { createdAt: 'desc' }, take: 1, include: { address: true } },
           },
-        }) as unknown as typeof user;
+        });
       } catch (e: unknown) {
         // Se der erro de duplicata (race condition), busca de novo
         user = await prisma.user.findFirst({

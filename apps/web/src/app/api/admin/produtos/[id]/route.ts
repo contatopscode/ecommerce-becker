@@ -5,7 +5,7 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, type Prisma } from '@becker/db';
+import { prisma } from '@becker/db';
 import { getSession } from '@/lib/auth/session';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -53,7 +53,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Atualizar imagem principal
     if (imageUrl) {
       const existingImage = await prisma.productImage.findFirst({
-        where: { productId: id, isCover: true } as Prisma.ProductImageWhereInput,
+        where: { productId: id, isPrimary: true },
       });
       if (existingImage) {
         await prisma.productImage.update({
@@ -65,10 +65,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           data: {
             productId: id,
             url: imageUrl,
-            isCover: true,
             isPrimary: true,
             order: 0,
-          } as Prisma.ProductImageUncheckedCreateInput,
+          },
         });
       }
     }

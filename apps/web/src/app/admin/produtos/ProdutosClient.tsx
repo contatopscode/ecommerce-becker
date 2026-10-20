@@ -19,7 +19,7 @@ interface Product {
   isNew: boolean;
   isEco: boolean;
   rating: number;
-  images: Array<{ id: string; url: string; isCover: boolean; isPrimary: boolean }>;
+  images: Array<{ id: string; url: string; isPrimary: boolean }>;
   versions: Array<{ id: string; label: string; sku: string; price: number; stock: number; weight: number | null }>;
 }
 
