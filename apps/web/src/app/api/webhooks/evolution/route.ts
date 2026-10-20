@@ -5,8 +5,8 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@becker/db';
-import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
+import { prisma, type Prisma } from '@becker/db';
+import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { chat, detectIntent } from '@/lib/ai-server';
 
 const WEBHOOK_TOKEN = process.env.EVOLUTION_WEBHOOK_TOKEN || 'becker-secret-token';
@@ -75,9 +75,9 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[webhook] Erro:', e);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 }
 
@@ -107,7 +107,7 @@ async function processMessage(phone: string, customerName: string | undefined, t
   });
 
   // Append message
-  const messages = Array.isArray(conversation.messages) ? conversation.messages as any[] : [];
+  const messages = Array.isArray(conversation.messages) ? (conversation.messages as unknown) as Array<{ role: 'system' | 'user' | 'assistant'; content: string; at?: string }> : [];
   messages.push({ role: 'user', content: text, at: new Date().toISOString() });
 
   // 2. Detectar intenção
@@ -223,8 +223,8 @@ async function processMessage(phone: string, customerName: string | undefined, t
   await prisma.whatsAppConversation.update({
     where: { id: `wa_${phone}` },
     data: {
-      messages: messages as any,
-      context: { lastIntent: intent, lastMessageId: messageId } as any,
+      messages: messages as unknown as Prisma.InputJsonValue,
+      context: { lastIntent: intent, lastMessageId: messageId } as Prisma.InputJsonValue,
     },
   });
 }

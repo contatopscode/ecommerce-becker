@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
 
     const result = await saveCart({ whatsapp, customerName, items, cupom });
     return NextResponse.json(result, { status: result.ok ? 200 : 400 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[cart/save] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

@@ -19,7 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
@@ -44,10 +44,10 @@ export async function GET(
     }
 
     return NextResponse.json({ ok: true, delivery });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] GET error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }
@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
@@ -104,10 +104,10 @@ export async function PATCH(
     });
 
     return NextResponse.json({ ok: true, delivery: updated });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] PATCH error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }

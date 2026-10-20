@@ -4,8 +4,8 @@
 // ============================================================
 
 import 'server-only';
-import { prisma } from '@becker/db';
-import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
+import { prisma, Prisma } from '@becker/db';
+import { sendWhatsApp } from '@/lib/whatsapp-client';
 
 // ============== TIPOS ==============
 
@@ -18,6 +18,8 @@ export interface CartItem {
   qty: number;
   image?: string;
 }
+
+type AbandonedCart = Prisma.CartRecoveryGetPayload<object>;
 
 export interface SaveCartInput {
   whatsapp: string;
@@ -64,7 +66,7 @@ export async function saveCart(input: SaveCartInput): Promise<{ ok: boolean; car
         where: { id: existing.id },
         data: {
           customerName: input.customerName || existing.customerName,
-          items: input.items as any,
+          items: input.items as unknown as Prisma.InputJsonValue,
           subtotal,
           totalItems,
           cupom: input.cupom || existing.cupom,
@@ -82,7 +84,7 @@ export async function saveCart(input: SaveCartInput): Promise<{ ok: boolean; car
       data: {
         whatsapp,
         customerName: input.customerName,
-        items: input.items as any,
+        items: input.items as unknown as Prisma.InputJsonValue,
         subtotal,
         totalItems,
         cupom: input.cupom,
@@ -91,9 +93,9 @@ export async function saveCart(input: SaveCartInput): Promise<{ ok: boolean; car
     });
 
     return { ok: true, cartId: cart.id };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[cart-recovery] saveCart error:', e);
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 
@@ -124,12 +126,12 @@ export async function markAsConverted(whatsapp: string, orderId: string): Promis
 // ============== PROCESS ABANDONED ==============
 
 const MSGS = {
-  '1h': (c: any) => `🛒 *Oi! Sentimos sua falta*
+  '1h': (c: AbandonedCart) => `🛒 *Oi! Sentimos sua falta*
 
 Você deixou ${c.totalItems} ${c.totalItems === 1 ? 'item' : 'itens'} no carrinho da Becker:
 
-${c.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name} (${i.versionLabel})`).join('\n')}
-${c.items.length > 3 ? `  ... e mais ${c.items.length - 3}\n` : ''}
+${(c.items as unknown as CartItem[]).slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name} (${i.versionLabel})`).join('\n')}
+${(c.items as unknown as CartItem[]).length > 3 ? `  ... e mais ${(c.items as unknown as CartItem[]).length - 3}\n` : ''}
 
 💰 Total: *R$ ${Number(c.subtotal).toFixed(2).replace('.', ',')}*
 
@@ -139,11 +141,11 @@ ${c.items.length > 3 ? `  ... e mais ${c.items.length - 3}\n` : ''}
 
 Qualquer dúvida, é só responder aqui! 😊`,
 
-  '24h': (c: any) => `💚 *Becker - Seus produtos ainda estão esperando!*
+  '24h': (c: AbandonedCart) => `💚 *Becker - Seus produtos ainda estão esperando!*
 
 Passou um dia e você ainda não finalizou. Seus itens no carrinho:
 
-${c.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name}`).join('\n')}
+${(c.items as unknown as CartItem[]).slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name}`).join('\n')}
 
 ✨ *Que tal um incentivo?* Use o cupom *VOLTA10* e ganhe 10% OFF na sua compra!
 
@@ -154,11 +156,11 @@ Total com desconto: *R$ ${(Number(c.subtotal) * 0.9).toFixed(2).replace('.', ','
 
 Estamos aqui se precisar de ajuda! 🤗`,
 
-  '72h': (c: any) => `👋 *Última chance!*
+  '72h': (c: AbandonedCart) => `👋 *Última chance!*
 
 Oi! Seus produtos ainda estão no carrinho mas vamos liberar em breve.
 
-${c.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name}`).join('\n')}
+${(c.items as unknown as CartItem[]).slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name}`).join('\n')}
 
 🎁 *OFERTA ESPECIAL SÓ PRA VOCÊ:* Frete grátis + 15% OFF com o cupom *ULTIMACHANCE*
 
@@ -285,7 +287,7 @@ export async function processAbandonedCarts(): Promise<{
   return stats;
 }
 
-async function sendAbandonedMessage(cart: any, type: '1h' | '24h' | '72h'): Promise<boolean> {
+async function sendAbandonedMessage(cart: AbandonedCart, type: '1h' | '24h' | '72h'): Promise<boolean> {
   const message = MSGS[type](cart);
   const result = await sendWhatsApp({
     number: cart.whatsapp,

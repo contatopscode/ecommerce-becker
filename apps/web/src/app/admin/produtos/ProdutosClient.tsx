@@ -19,8 +19,25 @@ interface Product {
   isNew: boolean;
   isEco: boolean;
   rating: number;
-  images: Array<{ id: string; url: string; isCover: boolean; isPrimary: boolean }>;
+  images: Array<{ id: string; url: string; isPrimary: boolean }>;
   versions: Array<{ id: string; label: string; sku: string; price: number; stock: number; weight: number | null }>;
+}
+
+interface ProductFormData {
+  id?: string;
+  name: string;
+  slug: string;
+  description: string;
+  shortDescription: string;
+  sku: string;
+  categoryId: string;
+  active: boolean;
+  isTop: boolean;
+  isFeatured: boolean;
+  isNew: boolean;
+  isEco: boolean;
+  imageUrl: string;
+  version: { label: string; price: number; stock: number; weight: number; sku: string };
 }
 
 interface Category {
@@ -40,7 +57,7 @@ export function ProdutosClient({ initialProducts, categories }: Props) {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | boolean | null>(false);
 
   // Atualiza quando products iniciais mudam (refresh)
   useEffect(() => {
@@ -54,7 +71,7 @@ export function ProdutosClient({ initialProducts, categories }: Props) {
     p.category.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleSave = async (data: any, isNew: boolean) => {
+  const handleSave = async (data: ProductFormData, isNew: boolean) => {
     setBusy(true);
     try {
       const url = isNew ? '/api/admin/produtos' : `/api/admin/produtos/${data.id}`;
@@ -94,7 +111,7 @@ export function ProdutosClient({ initialProducts, categories }: Props) {
     } catch {
       toast('Erro de conexão', 'error');
     }
-    setBusy(null as any);
+    setBusy(null);
   };
 
   return (
@@ -182,7 +199,7 @@ export function ProdutosClient({ initialProducts, categories }: Props) {
                         </button>
                         <button
                           onClick={() => handleDelete(p.id, p.name)}
-                          disabled={busy === p.id as any}
+                          disabled={busy === p.id}
                           className="text-xs text-red-600 hover:underline font-semibold disabled:opacity-50"
                         >
                           Deletar
@@ -219,7 +236,7 @@ export function ProdutosClient({ initialProducts, categories }: Props) {
 function ProductModal({ product, categories, onSave, onClose, busy }: {
   product: Product | null;
   categories: Category[];
-  onSave: (data: any, isNew: boolean) => void;
+  onSave: (data: ProductFormData, isNew: boolean) => void;
   onClose: () => void;
   busy: boolean;
 }) {

@@ -8,6 +8,8 @@ import 'server-only';
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { prisma } from '@becker/db';
 
+type PaymentStatusValue = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+
 // ============== CONFIGURAÇÃO ==============
 
 /**
@@ -101,12 +103,23 @@ export interface PaymentStatus {
 
 // ============== PIX ==============
 
+interface MPPixExtras {
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string;
+      qr_code_base64?: string;
+      ticket_url?: string;
+    };
+  };
+  date_of_expiration?: string;
+}
+
 /**
  * Cria um pagamento PIX via Mercado Pago
  */
 export async function createPixPayment(input: CreatePixPaymentInput): Promise<CreatePixPaymentResult> {
   try {
-    const { client, sandbox } = await getMPClient();
+    const { client } = await getMPClient();
     const payment = new Payment(client);
 
     const customerName = input.customer.name.split(' ');
@@ -144,7 +157,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
     }
 
     // Extrai QR Code do response
-    const pointOfInteraction = (result as any).point_of_interaction;
+    const pointOfInteraction = (result as unknown as MPPixExtras).point_of_interaction;
     const transactionData = pointOfInteraction?.transaction_data;
 
     if (!transactionData?.qr_code) {
@@ -156,14 +169,14 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Cr
       paymentId: String(result.id),
       qrCode: transactionData.qr_code,
       qrCodeBase64: transactionData.qr_code_base64,
-      expirationDate: (result as any).date_of_expiration,
+      expirationDate: (result as unknown as MPPixExtras).date_of_expiration,
       ticketUrl: transactionData.ticket_url,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[mercadopago] Erro ao criar pagamento PIX:', e);
     return {
       ok: false,
-      error: e.message || 'Erro ao criar pagamento no Mercado Pago',
+      error: (e instanceof Error ? e.message : String(e)) || 'Erro ao criar pagamento no Mercado Pago',
     };
   }
 }
@@ -181,12 +194,12 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
 
     return {
       id: String(result.id),
-      status: result.status as any,
+      status: result.status as PaymentStatus['status'],
       statusDetail: result.status_detail,
       paidAt: result.date_approved,
       amount: result.transaction_amount || 0,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[mercadopago] Erro ao consultar pagamento:', e);
     return null;
   }
@@ -200,7 +213,7 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
 export async function createPreference(input: {
   orderId: string;
   orderNumber: string;
-  items: Array<{ title: string; quantity: number; unit_price: number }>;
+  items: NonNullable<Parameters<Preference['create']>[0]['body']['items']>;
   total: number;
   customer: { name: string; email?: string };
 }): Promise<{ ok: boolean; preferenceId?: string; initPoint?: string; error?: string }> {
@@ -232,9 +245,9 @@ export async function createPreference(input: {
       preferenceId: result.id,
       initPoint: sandbox ? result.sandbox_init_point : result.init_point,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[mercadopago] Erro ao criar preference:', e);
-    return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -256,11 +269,11 @@ export async function testConnection(): Promise<{ ok: boolean; mode: string; err
       ok: true,
       mode: sandbox ? 'sandbox' : 'production',
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     return {
       ok: false,
       mode: 'unknown',
-      error: e.message || 'Erro de conexão',
+      error: (e instanceof Error ? e.message : String(e)) || 'Erro de conexão',
     };
   }
 }
@@ -272,7 +285,7 @@ export async function testConnection(): Promise<{ ok: boolean; mode: string; err
  */
 export function mapMPStatusToOrderStatus(
   mpStatus: string
-): 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' {
+): PaymentStatusValue {
   switch (mpStatus) {
     case 'approved':
       return 'PAID';

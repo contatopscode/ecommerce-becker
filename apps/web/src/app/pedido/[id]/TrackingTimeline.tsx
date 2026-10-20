@@ -54,7 +54,6 @@ export function TrackingTimeline({ status, tracking }: TimelineProps) {
         {STEPS.map((step, idx) => {
           const isCompleted = idx < currentStep;
           const isCurrent = idx === currentStep;
-          const isFuture = idx > currentStep;
 
           return (
             <div key={step.id} className="flex flex-col items-center flex-1 relative z-10">

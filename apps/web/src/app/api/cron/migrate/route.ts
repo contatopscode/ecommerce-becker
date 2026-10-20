@@ -37,12 +37,13 @@ export async function POST(req: NextRequest) {
       message: 'Schema aplicado com sucesso',
       output: stdout + (stderr ? `\n--- stderr ---\n${stderr}` : ''),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const err = e as { message?: string; stdout?: string; stderr?: string };
     console.error('[cron/migrate] Erro:', e);
     return NextResponse.json({
       ok: false,
-      error: e.message || 'Erro ao aplicar schema',
-      output: e.stdout || e.stderr || '',
+      error: err.message || 'Erro ao aplicar schema',
+      output: err.stdout || err.stderr || '',
     }, { status: 500 });
   }
 }

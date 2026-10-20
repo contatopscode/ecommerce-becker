@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
     const whatsapp = req.nextUrl.searchParams.get('whatsapp') || '';
     const result = await getFirstBuyCoupon(whatsapp);
     return NextResponse.json({ ok: true, ...result });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[cupom/first-buy] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }

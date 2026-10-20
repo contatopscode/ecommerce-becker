@@ -1,3 +1,4 @@
+import Link from 'next/link';
 export const metadata = {
   title: 'Termos de Uso',
   description: 'Termos e condições de uso da loja Becker.',
@@ -7,9 +8,9 @@ export default function TermosPage() {
   return (
     <div className="min-h-screen bg-becker-cream/30">
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <a href="/" className="text-sm text-becker-purple font-semibold hover:underline mb-4 inline-block">
+        <Link href="/" className="text-sm text-becker-purple font-semibold hover:underline mb-4 inline-block">
           ← Voltar para a loja
-        </a>
+        </Link>
 
         <h1 className="text-3xl lg:text-4xl font-extrabold mb-2">Termos de Uso</h1>
         <p className="text-sm text-becker-slate mb-8">Última atualização: 08/08/2026</p>

@@ -53,7 +53,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // Atualizar imagem principal
     if (imageUrl) {
       const existingImage = await prisma.productImage.findFirst({
-        where: { productId: id, isCover: true },
+        where: { productId: id, isPrimary: true },
       });
       if (existingImage) {
         await prisma.productImage.update({
@@ -65,7 +65,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           data: {
             productId: id,
             url: imageUrl,
-            isCover: true,
             isPrimary: true,
             order: 0,
           },
@@ -105,9 +104,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json({ ok: true, product });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/produtos PUT] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }
 
@@ -127,7 +126,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     return NextResponse.json({ ok: true, message: 'Produto desativado' });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

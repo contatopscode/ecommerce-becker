@@ -57,7 +57,7 @@ export async function notifyOrder(input: NotifyOrderInput) {
 
     const orderData = {
       number: order.number,
-      customerName: order.user?.name || order.guestName || 'Cliente',
+      customerName: order.user?.name || 'Cliente',
       customerPhone: phone || '',
       items: order.items.map((i) => ({
         productName: i.productName,
@@ -119,8 +119,8 @@ export async function notifyOrder(input: NotifyOrderInput) {
       try {
         await sendWhatsApp({ number: phoneDigits, text });
         console.log(`[notify] ✓ Cliente notificado: ${event} → ${phoneDigits}`);
-      } catch (e: any) {
-        console.error(`[notify] ❌ Cliente WhatsApp falhou:`, e.message);
+      } catch (e: unknown) {
+        console.error(`[notify] ❌ Cliente WhatsApp falhou:`, (e as Error).message);
       }
     }
 
@@ -182,14 +182,14 @@ export async function notifyOrder(input: NotifyOrderInput) {
           console.error(`[notify] ❌ Admin falhou: ${result.error}`);
         }
       }
-    } catch (e: any) {
-      console.error('[notify] Admin notify error:', e.message);
+    } catch (e: unknown) {
+      console.error('[notify] Admin notify error:', (e as Error).message);
     }
 
     return { ok: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error(`[notify] Erro geral:`, e);
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 
@@ -204,9 +204,9 @@ export async function notifyNewLead(lead: { name: string; whatsapp: string; sour
       source: lead.source || 'Site - Checkout',
     });
     return await notifyAdmin(msg);
-  } catch (e: any) {
-    console.error('[notify] Lead error:', e.message);
-    return { ok: false, error: e.message };
+  } catch (e: unknown) {
+    console.error('[notify] Lead error:', (e as Error).message);
+    return { ok: false, error: (e as Error).message };
   }
 }
 
@@ -236,8 +236,8 @@ export async function notifyAdminDelivery(input: {
       return await notifyAdmin(msg);
     }
     return { ok: false, error: 'evento sem mensagem' };
-  } catch (e: any) {
-    console.error('[notify] Delivery error:', e.message);
-    return { ok: false, error: e.message };
+  } catch (e: unknown) {
+    console.error('[notify] Delivery error:', (e as Error).message);
+    return { ok: false, error: (e as Error).message };
   }
 }

@@ -9,15 +9,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@becker/db';
-import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
+import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { saveCart } from '@/lib/cart-recovery';
 
+interface CartItem { qty: number; name: string; versionLabel?: string }
+interface Cart { totalItems: number; subtotal: unknown; items: CartItem[] }
+
 const TEMPLATES = {
-  '1h': (cart: any) => `🛒 *[TESTE 1h] Oi! Sentimos sua falta*
+  '1h': (cart: Cart) => `🛒 *[TESTE 1h] Oi! Sentimos sua falta*
 
 Você deixou ${cart.totalItems} ${cart.totalItems === 1 ? 'item' : 'itens'} no carrinho da Becker:
 
-${cart.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name} (${i.versionLabel})`).join('\n')}
+${cart.items.slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name} (${i.versionLabel})`).join('\n')}
 ${cart.items.length > 3 ? `  ... e mais ${cart.items.length - 3}\n` : ''}
 
 💰 Total: *R$ ${Number(cart.subtotal).toFixed(2).replace('.', ',')}*
@@ -28,11 +31,11 @@ ${cart.items.length > 3 ? `  ... e mais ${cart.items.length - 3}\n` : ''}
 
 _(Esta é uma mensagem de teste - Sprint 9)_`,
 
-  '24h': (cart: any) => `💚 *[TESTE 24h] Becker - Seus produtos ainda estão esperando!*
+  '24h': (cart: Cart) => `💚 *[TESTE 24h] Becker - Seus produtos ainda estão esperando!*
 
 Passou um dia e você ainda não finalizou. Seus itens no carrinho:
 
-${cart.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name}`).join('\n')}
+${cart.items.slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name}`).join('\n')}
 
 ✨ *Que tal um incentivo?* Use o cupom *VOLTA10* e ganhe 10% OFF na sua compra!
 
@@ -43,11 +46,11 @@ Total com desconto: *R$ ${(Number(cart.subtotal) * 0.9).toFixed(2).replace('.', 
 
 _(Esta é uma mensagem de teste - Sprint 9)_`,
 
-  '72h': (cart: any) => `👋 *[TESTE 72h] Última chance!*
+  '72h': (cart: Cart) => `👋 *[TESTE 72h] Última chance!*
 
 Oi! Seus produtos ainda estão no carrinho mas vamos liberar em breve.
 
-${cart.items.slice(0, 3).map((i: any) => `  • ${i.qty}x ${i.name}`).join('\n')}
+${cart.items.slice(0, 3).map((i: CartItem) => `  • ${i.qty}x ${i.name}`).join('\n')}
 
 🎁 *OFERTA ESPECIAL SÓ PRA VOCÊ:* Frete grátis + 15% OFF com o cupom *ULTIMACHANCE*
 
@@ -145,14 +148,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      messageId: result.messageId,
       sentTo: fullPhone,
       type,
       items: items.length,
       subtotal,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[cart/test-send] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

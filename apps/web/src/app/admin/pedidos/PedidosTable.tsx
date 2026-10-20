@@ -11,11 +11,11 @@ interface Order {
   createdAt: Date;
   status: string;
   paymentStatus: string;
-  total: any;
+  total: unknown;
   tracking: string | null;
   user: { name: string; whatsapp: string | null } | null;
   guestWhatsapp: string | null;
-  items: Array<{ id: string; productName: string; versionLabel: string; qty: number; price: any; total: any }>;
+  items: Array<{ id: string; productName: string; versionLabel: string; qty: number; price: unknown; total: unknown }>;
   address: { city: string; state: string } | null;
 }
 

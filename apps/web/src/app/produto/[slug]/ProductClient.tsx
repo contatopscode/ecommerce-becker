@@ -5,7 +5,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useCart, toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { calcShippingAction } from '@/lib/actions';
@@ -14,8 +13,8 @@ import { getCustomerHintClient, type CustomerHint } from '@/lib/cookie-helpers';
 interface ProductVersion {
   id: string;
   label: string;
-  price: any;
-  originalPrice: any;
+  price: number | string | { toString(): string } | null;
+  originalPrice: number | string | { toString(): string } | null;
   stock: number;
   weight: number;
   sku: string;
@@ -98,10 +97,10 @@ export function ProductClient({ product }: Props) {
     }
     setLoadingShipping(true);
     try {
-      const options = await calcShippingAction(cep, 0); // valor simulado só pra mostrar opções
+      const options = await calcShippingAction(cep, [{ weight: selectedVersion.weight || 500, qty }], 0); // valor simulado só pra mostrar opções
       setShipping({ price: options[0]?.price || 0, days: options[0]?.days || '', carrier: options[0]?.carrier || 'Correios' });
       toast('Frete calculado!', 'success');
-    } catch (e) {
+    } catch {
       toast('Erro ao calcular frete', 'error');
     }
     setLoadingShipping(false);

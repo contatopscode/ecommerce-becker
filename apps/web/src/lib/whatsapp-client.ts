@@ -17,7 +17,7 @@ export interface SendTextOptions {
 export function normalizeWhatsAppNumber(phone: string): string {
   const cleaned = (phone || '').replace(/\D/g, '');
   // Garante código do país
-  let full = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
+  const full = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
   // Se tem 13 dígitos (55 + DDD + 9 + 9 dígitos), tira o 9
   // 55 81 9 999441333 = 13 dígitos -> 55 81 999441333 = 12 dígitos
   if (full.length === 13 && full.startsWith('55')) {
@@ -51,8 +51,8 @@ export async function sendWhatsApp(options: SendTextOptions): Promise<{ success:
       return { success: false, error: `HTTP ${response.status}` };
     }
     return { success: true };
-  } catch (e: any) {
-    return { success: false, error: e.message };
+  } catch (e: unknown) {
+    return { success: false, error: (e as Error).message };
   }
 }
 

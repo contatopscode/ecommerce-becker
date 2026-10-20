@@ -30,7 +30,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   } = params;
 
   // Filtrar
-  const filters: any = {
+  const filters: NonNullable<Parameters<typeof fetchProducts>[0]> = {
     search: q || undefined,
     take: 60,
   };
@@ -38,7 +38,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (eco === '1') filters.isEco = true;
   if (top === '1') filters.isTop = true;
   if (novo === '1') filters.isNew = true;
-  if (ordem && ordem !== 'relevante') filters.orderBy = ordem;
+  if (ordem && ordem !== 'relevante') filters.orderBy = ordem as typeof filters.orderBy;
 
   const results = await fetchProducts(filters);
   const categories = await fetchCategories();
@@ -48,14 +48,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   if (precoMin) {
     const min = Number(precoMin);
     filtered = filtered.filter((p) => {
-      const minPrice = Math.min(...(p.versions.map((v: any) => v.price) as number[]));
+      const minPrice = Math.min(...(p.versions.map((v: { price: unknown }) => v.price) as number[]));
       return minPrice >= min;
     });
   }
   if (precoMax) {
     const max = Number(precoMax);
     filtered = filtered.filter((p) => {
-      const minPrice = Math.min(...(p.versions.map((v: any) => v.price) as number[]));
+      const minPrice = Math.min(...(p.versions.map((v: { price: unknown }) => v.price) as number[]));
       return minPrice <= max;
     });
   }
@@ -67,7 +67,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <Link href="/" className="hover:underline">Home</Link> › <span className="text-becker-ink font-medium">Busca</span>
         </div>
         <h1 className="display text-3xl lg:text-4xl font-extrabold mb-1">
-          {q ? <>Resultados para <span className="text-becker-purple">"{q}"</span></> : 'Todos os produtos'}
+          {q ? <>Resultados para <span className="text-becker-purple">&quot;{q}&quot;</span></> : 'Todos os produtos'}
         </h1>
         <p className="text-becker-slate mb-6">
           {filtered.length === 0

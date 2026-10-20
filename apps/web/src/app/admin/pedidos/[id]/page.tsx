@@ -26,7 +26,7 @@ export default async function AdminPedidoDetalhePage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      user: true,
+      user: { include: { _count: { select: { orders: true } } } },
       address: true,
       items: true,
       delivery: {
@@ -49,7 +49,7 @@ export default async function AdminPedidoDetalhePage({
     REFUNDED: 'bg-gray-100 text-gray-800',
   };
 
-  const formatBRL = (n: any) => `R$ ${Number(n).toFixed(2)}`;
+  const formatBRL = (n: unknown) => `R$ ${Number(n).toFixed(2)}`;
   const formatDate = (d: Date | null) =>
     d ? new Date(d).toLocaleString('pt-BR') : '—';
 
@@ -99,7 +99,7 @@ export default async function AdminPedidoDetalhePage({
                 <div className="text-becker-slate">📱 {order.user.whatsapp}</div>
                 {order.user.email && <div className="text-becker-slate">📧 {order.user.email}</div>}
                 <div className="text-xs text-becker-slate mt-2">
-                  Pedidos anteriores: {order.user.orders?.length ?? 0}
+                  Pedidos anteriores: {Math.max(order.user._count.orders - 1, 0)}
                 </div>
               </div>
             ) : (

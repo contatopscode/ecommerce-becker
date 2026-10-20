@@ -20,7 +20,6 @@ const KIT_SLUGS = [
 ];
 
 let isSeeding = false; // guard contra chamadas paralelas
-let lastCheck = 0; // throttle: não checa mais que 1x por hora
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1h
 let cachedResult: { seeded: boolean; at: number } | null = null;
 
@@ -66,9 +65,9 @@ export async function ensureKitsSeeded(): Promise<{ seeded: boolean; created: nu
       updated: result.updated.length,
       errors: result.errors,
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[ensureKitsSeeded] Error:', e);
-    return { seeded: false, created: 0, updated: 0, errors: [e.message || String(e)] };
+    return { seeded: false, created: 0, updated: 0, errors: [(e as Error).message || String(e)] };
   } finally {
     isSeeding = false;
   }

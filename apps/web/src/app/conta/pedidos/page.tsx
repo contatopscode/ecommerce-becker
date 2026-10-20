@@ -58,7 +58,7 @@ export default async function MyOrdersPage() {
   );
 }
 
-function OrderCard({ order }: { order: any }) {
+function OrderCard({ order }: { order: Awaited<ReturnType<typeof prisma.order.findMany<{ include: { items: true } }>>>[number] }) {
   const statusConfig: Record<string, { label: string; color: string }> = {
     PENDING: { label: 'Aguardando pgto', color: 'amber' },
     PAID: { label: 'Pago', color: 'blue' },

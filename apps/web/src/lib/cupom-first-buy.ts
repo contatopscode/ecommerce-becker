@@ -6,11 +6,13 @@
 import 'server-only';
 import { prisma } from '@becker/db';
 
+type DiscountType = 'percent' | 'fixed';
+
 export interface FirstBuyCouponResult {
   isFirstBuy: boolean;
   couponCode: string | null;
   discount: number;
-  discountType: 'percent' | 'fixed';
+  discountType: DiscountType;
 }
 
 /**
@@ -64,7 +66,7 @@ export async function getFirstBuyCoupon(whatsapp: string): Promise<FirstBuyCoupo
     if (coupon && coupon.active) {
       result.couponCode = coupon.code;
       result.discount = Number(coupon.discount);
-      result.discountType = coupon.type as any;
+      result.discountType = coupon.type as DiscountType;
     }
     return result;
   }
@@ -90,7 +92,7 @@ export async function getFirstBuyCoupon(whatsapp: string): Promise<FirstBuyCoupo
 
   result.couponCode = coupon.code;
   result.discount = Number(coupon.discount);
-  result.discountType = coupon.type as any;
+  result.discountType = coupon.type as DiscountType;
 
   return result;
 }

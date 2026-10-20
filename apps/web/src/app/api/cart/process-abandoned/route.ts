@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
   try {
     const stats = await processAbandonedCarts();
     return NextResponse.json({ ok: true, ...stats });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[cart/process-abandoned] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useCart, toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { calcShippingAction } from '@/lib/actions';
@@ -68,7 +67,7 @@ export function KitDetail({ kit }: KitDetailProps) {
       originalPrice: kit.originalPrice,
       stock: 99,
       isKit: true,
-    } as any);
+    } as Parameters<typeof cart.add>[0]);
     toast(`🎁 ${kit.name} adicionado ao carrinho!`, 'success');
   };
 
@@ -85,9 +84,7 @@ export function KitDetail({ kit }: KitDetailProps) {
     }
     setLoadingShipping(true);
     try {
-      // Estimar peso médio: ~1kg por item
-      const estimatedWeight = kit.items.length;
-      const options = await calcShippingAction(cep, kit.price);
+      const options = await calcShippingAction(cep, [{ weight: 500, qty: 1 }], kit.price);
       if (options && options.length > 0) {
         setShipping({
           price: options[0]?.price || 0,
@@ -98,7 +95,7 @@ export function KitDetail({ kit }: KitDetailProps) {
       } else {
         toast('Não foi possível calcular o frete', 'error');
       }
-    } catch (e) {
+    } catch {
       toast('Erro ao calcular frete', 'error');
     }
     setLoadingShipping(false);

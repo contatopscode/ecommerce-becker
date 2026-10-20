@@ -4,12 +4,11 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@becker/db';
-import { sendWhatsApp } from '@/lib/whatsapp-client';
-import { getSession } from '@/lib/auth/session';
+import { prisma, type Prisma } from '@becker/db';
 import { notifyOrder } from '@/lib/notify';
 import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
+import { verificarCupom, calcularDesconto } from '@/lib/cupom';
 import { markAsConverted } from '@/lib/cart-recovery';
 
 function genOrderNumber() {
@@ -46,11 +45,11 @@ export async function POST(req: NextRequest) {
     // Calcular totais
     // SPRINT 11: Suporte a kits (item.isKit = true, versionId = "kit-{slug}")
     const regularVersionIds = items
-      .filter((i: any) => !i.isKit && i.versionId)
-      .map((i: any) => i.versionId);
+      .filter((i: { isKit?: boolean; versionId: string }) => !i.isKit && i.versionId)
+      .map((i: { isKit?: boolean; versionId: string }) => i.versionId);
     const kitSlugs = items
-      .filter((i: any) => i.isKit && i.versionId?.startsWith('kit-'))
-      .map((i: any) => i.versionId.replace(/^kit-/, ''));
+      .filter((i: { isKit?: boolean; versionId: string }) => i.isKit && i.versionId?.startsWith('kit-'))
+      .map((i: { isKit?: boolean; versionId: string }) => i.versionId.replace(/^kit-/, ''));
 
     const [versions, kits] = await Promise.all([
       regularVersionIds.length > 0
@@ -72,9 +71,9 @@ export async function POST(req: NextRequest) {
 
     let subtotal = 0;
     // Cada item regular vira 1 entry; cada kit vira 1 entry com kitItems aninhado
-    const orderItemsData: any[] = [];
+    const orderItemsData: Prisma.OrderItemUncheckedCreateWithoutOrderInput[] = [];
     // Mapa de kitSlug → lista de OrderItemKitItem
-    const kitItemsByKitSlug: Record<string, any[]> = {};
+    const kitItemsByKitSlug: Record<string, Record<string, unknown>[]> = {};
 
     for (const item of items) {
       if (item.isKit) {
@@ -132,23 +131,34 @@ export async function POST(req: NextRequest) {
 
     // Validar cupom se informado
     let discount = 0;
-    let couponId: string | null = null;
+    let freeShipping = false;
     if (cupom) {
-      const c = await prisma.coupon.findUnique({ where: { code: cupom.toUpperCase() } });
-      if (c && c.active) {
-        couponId = c.id;
-        if (c.type === 'percent') discount = subtotal * (Number(c.value) / 100);
-        else if (c.type === 'fixed') discount = Number(c.value);
-        // Incrementar uso
-        await prisma.coupon.update({
-          where: { id: c.id },
-          data: { usedCount: { increment: 1 } },
-        });
+      const c = await prisma.coupon.findUnique({ where: { code: String(cupom).toUpperCase() } });
+      if (!c) {
+        return NextResponse.json({ ok: false, error: 'Cupom não encontrado' }, { status: 400 });
       }
+      const check = verificarCupom(c, subtotal);
+      if (!check.ok) {
+        return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+      }
+      // Incremento atômico e condicional: evita ultrapassar maxUses em pedidos simultâneos
+      const claimed = await prisma.coupon.updateMany({
+        where: {
+          id: c.id,
+          active: true,
+          ...(c.maxUses !== null ? { usedCount: { lt: c.maxUses } } : {}),
+        },
+        data: { usedCount: { increment: 1 } },
+      });
+      if (claimed.count === 0) {
+        return NextResponse.json({ ok: false, error: 'Cupom esgotado' }, { status: 400 });
+      }
+      discount = calcularDesconto(c, subtotal);
+      if (c.type === 'shipping') freeShipping = true;
     }
 
-    const shippingPrice = shipping?.price || 0;
-    const total = subtotal - discount + shippingPrice;
+    const shippingPrice = freeShipping ? 0 : shipping?.price || 0;
+    const total = Math.max(0, subtotal - discount + shippingPrice);
 
     // Buscar ou criar usuário
     const whatsappFormatted = `(${whatsapp.slice(0, 2)}) ${whatsapp.slice(2, 7)}-${whatsapp.slice(7)}`;
@@ -295,8 +305,8 @@ export async function POST(req: NextRequest) {
       orderNumber: order.number,
       payment,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Order create error:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

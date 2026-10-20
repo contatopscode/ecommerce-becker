@@ -11,7 +11,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useCart, toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { Footer } from '@/components/Footer';
@@ -37,7 +36,7 @@ interface CustomerData {
   whatsapp: string;
   email?: string;
   cpfCnpj?: string;
-  address: any;
+  address?: { cep?: string; street?: string; number?: string; city?: string; state?: string } | null;
   orderCount: number;
   isFirstPurchase: boolean;
   isNewLead?: boolean;
@@ -97,7 +96,7 @@ export default function CheckoutPageContent() {
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
-  const [isFastPath, setIsFastPath] = useState(false);
+  const [, setIsFastPath] = useState(false);
   const oneClickInitRef = useRef(false);
 
   // Form state
@@ -125,7 +124,6 @@ export default function CheckoutPageContent() {
 
   // ============ SPRINT 10: 1-CLIQUE — DETECÇÃO INICIAL ============
   // Roda 1x no mount. Lê ?fast=1 + cookie, decide o step inicial.
-  const searchByWhatsappRef = useRef<((phone: string) => Promise<void>) | null>(null);
   useEffect(() => {
     if (oneClickInitRef.current) return;
     oneClickInitRef.current = true;
@@ -237,7 +235,7 @@ export default function CheckoutPageContent() {
             whatsapp: cleaned,
             name: data.customer.name,
           });
-        } catch (e) {
+        } catch {
           // best-effort, não bloqueia checkout
         }
 
@@ -332,7 +330,7 @@ export default function CheckoutPageContent() {
         }),
         // Best-effort: não bloqueia checkout se falhar
       });
-    } catch (e) {
+    } catch {
       // Silencia - não queremos bloquear UX
     }
   }, [whatsapp, name, cart.items, cupomApplied]);
@@ -454,7 +452,7 @@ export default function CheckoutPageContent() {
     if (onlyDigits(whatsapp).length < 10) return;
 
     try {
-      const data: any = {
+      const data: Record<string, unknown> = {
         step: stepNum,
         whatsapp: onlyDigits(whatsapp),
         name: name || undefined,
@@ -951,7 +949,7 @@ export default function CheckoutPageContent() {
   );
 }
 
-function ShippingOptions({ current, onSelect, reloadFn }: any) {
+function ShippingOptions({ current, reloadFn }: { current: ShippingOption; onSelect?: (o: ShippingOption) => void; reloadFn: () => void }) {
   return (
     <div className="space-y-3">
       <div className="border-2 border-becker-purple bg-becker-purple-soft rounded-xl p-4">
@@ -978,7 +976,7 @@ function ShippingOptions({ current, onSelect, reloadFn }: any) {
   );
 }
 
-function PaymentOption({ selected, onClick, title, description, badge }: any) {
+function PaymentOption({ selected, onClick, title, description, badge }: { selected: boolean; onClick: () => void; title: string; description: string; badge?: string }) {
   return (
     <button
       onClick={onClick}

@@ -119,7 +119,6 @@ export async function POST(req: NextRequest) {
     }
 
     // ============== User.email ==============
-    const usersWithEmail = users.filter((u) => u.whatsapp);
     const userByEmail = await prisma.user.findMany({
       where: { email: { not: null } },
       select: { id: true, email: true, name: true },
@@ -155,8 +154,8 @@ export async function POST(req: NextRequest) {
       message: `${report.length} grupo(s) de duplicatas removidos`,
       report,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[fix-all-duplicates] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

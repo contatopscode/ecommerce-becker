@@ -14,7 +14,7 @@ import { isValidCronToken } from '@/lib/backup';
 const execAsync = promisify(exec);
 
 async function getDuplicates() {
-  const report: any[] = [];
+  const report: Record<string, unknown>[] = [];
 
   // Product.sku
   const products = await prisma.product.findMany({
@@ -115,7 +115,7 @@ async function getDuplicates() {
 }
 
 async function cleanDuplicates() {
-  const report: any[] = [];
+  const report: Record<string, unknown>[] = [];
 
   // Product.sku: mantém o primeiro, deleta os demais (com cascade)
   const products = await prisma.product.findMany({
@@ -168,7 +168,7 @@ async function cleanDuplicates() {
       for (const v of toDelete) {
         // Verifica se há OrderItem referenciando — se houver, não deleta (perderia histórico)
         const orderItemCount = await prisma.orderItem.count({
-          where: { productVersionId: v.id },
+          where: { versionId: v.id },
         });
         if (orderItemCount > 0) {
           // Mantém o duplicado mas renomeia SKU
@@ -263,7 +263,7 @@ async function cleanDuplicates() {
       for (const u of toDelete) {
         const orderCount = await prisma.order.count({ where: { userId: u.id } });
         if (orderCount > 0) {
-          const newEmail = `${u.email.split('@')[0]}+DUP-${u.id.slice(-6)}@${u.email.split('@')[1]}`;
+          const newEmail = `${u.email!.split('@')[0]}+DUP-${u.id.slice(-6)}@${u.email!.split('@')[1]}`;
           await prisma.user.update({
             where: { id: u.id },
             data: { email: newEmail },
@@ -300,9 +300,9 @@ export async function GET(req: NextRequest) {
       duplicatesCount: duplicates.length,
       duplicates,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[auto-fix:GET] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }
 
@@ -332,12 +332,12 @@ export async function POST(req: NextRequest) {
       cleanReport,
       migrateOutput: stdout + (stderr ? `\n--- stderr ---\n${stderr}` : ''),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[auto-fix:POST] Erro:', e);
     return NextResponse.json({
       ok: false,
-      error: e.message || 'Erro ao limpar/migrar',
-      output: e.stdout || e.stderr || '',
+      error: (e as Error).message || 'Erro ao limpar/migrar',
+      output: (e as { stdout?: string; stderr?: string }).stdout || (e as { stderr?: string }).stderr || '',
     }, { status: 500 });
   }
 }

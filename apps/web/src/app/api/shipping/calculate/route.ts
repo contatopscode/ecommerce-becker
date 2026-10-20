@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Buscar versões com peso
-    const versionIds = items.map((i: any) => i.versionId).filter(Boolean);
+    const versionIds = items.map((i: { versionId: string; qty: number }) => i.versionId).filter(Boolean);
     const versions = await prisma.productVersion.findMany({
       where: { id: { in: versionIds } },
       select: { id: true, weight: true },
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const weightMap = new Map(versions.map((v) => [v.id, v.weight || 500]));
 
-    const itemsWithWeight = items.map((i: any) => ({
+    const itemsWithWeight = items.map((i: { versionId: string; qty: number }) => ({
       weight: weightMap.get(i.versionId) || 500,
       qty: i.qty,
     }));
@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
     const options = await calculateShipping(cep, itemsWithWeight, orderTotal, config);
 
     return NextResponse.json({ ok: true, options, config });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Shipping error:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

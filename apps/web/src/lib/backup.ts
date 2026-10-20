@@ -62,8 +62,8 @@ export async function runBackup(): Promise<BackupResult> {
   try {
     const { stdout: pgVer } = await execAsync('pg_dump --version');
     console.log(`[backup] pg_dump: ${pgVer.trim()}`);
-  } catch (e: any) {
-    return { ok: false, error: `pg_dump não disponível no PATH: ${e.message}` };
+  } catch (e: unknown) {
+    return { ok: false, error: `pg_dump não disponível no PATH: ${(e as Error).message}` };
   }
 
   try {
@@ -75,9 +75,9 @@ export async function runBackup(): Promise<BackupResult> {
     try {
       const result = await execAsync(dumpCmd, { env, maxBuffer: 100 * 1024 * 1024 });
       dumpStderr = result.stderr || '';
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Captura stderr real (em vez de mascarar com pipe)
-      const stderr = e.stderr || e.stdout || e.message;
+      const stderr = (e as ExecErr).stderr || (e as ExecErr).stdout || (e as Error).message;
       await fs.unlink(sqlFile).catch(() => {});
       return {
         ok: false,
@@ -118,11 +118,11 @@ export async function runBackup(): Promise<BackupResult> {
       sizeBytes: gzStats.size,
       timestamp: new Date().toISOString(),
     };
-  } catch (e: any) {
-    console.error('[backup] ❌ Erro:', e.message);
+  } catch (e: unknown) {
+    console.error('[backup] ❌ Erro:', (e as Error).message);
     await fs.unlink(sqlFile).catch(() => {});
     await fs.unlink(gzFile).catch(() => {});
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 
@@ -147,8 +147,8 @@ export async function listBackups(): Promise<BackupInfo[]> {
     }
 
     return backups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  } catch (e: any) {
-    console.error('[backup] Erro ao listar:', e.message);
+  } catch (e: unknown) {
+    console.error('[backup] Erro ao listar:', (e as Error).message);
     return [];
   }
 }
@@ -166,8 +166,8 @@ async function cleanOldBackups(): Promise<void> {
         console.log(`[backup] 🧹 Removido backup antigo: ${b.filename}`);
       }
     }
-  } catch (e: any) {
-    console.error('[backup] Erro na limpeza:', e.message);
+  } catch (e: unknown) {
+    console.error('[backup] Erro na limpeza:', (e as Error).message);
   }
 }
 
@@ -195,3 +195,5 @@ export function isValidCronToken(token: string | null): boolean {
   }
   return mismatch === 0;
 }
+
+type ExecErr = { stdout?: string; stderr?: string };

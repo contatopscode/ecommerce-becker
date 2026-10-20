@@ -12,6 +12,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: habilitar pnpm
+        run: |
+          mkdir -p "$HOME/bin"
+          corepack enable --install-directory "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
       - name: instalar
         run: "pnpm install --frozen-lockfile && DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder pnpm db:generate"
       - name: lint

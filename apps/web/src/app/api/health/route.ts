@@ -8,7 +8,7 @@ import { prisma } from '@becker/db';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const health: any = {
+  const health: Record<string, unknown> = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'becker-web',
@@ -22,8 +22,8 @@ export async function GET() {
     health.db = { status: 'ok', latencyMs: Date.now() - start };
     const count = await prisma.product.count();
     health.products = count;
-  } catch (e: any) {
-    health.db = { status: 'error', error: e.message };
+  } catch (e: unknown) {
+    health.db = { status: 'error', error: (e as Error).message };
   }
 
   return NextResponse.json(health);

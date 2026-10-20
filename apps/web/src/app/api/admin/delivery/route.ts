@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, deliveryId: result.deliveryId });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] POST error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
@@ -71,10 +71,10 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, delivery });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] GET error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }

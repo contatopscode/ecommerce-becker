@@ -18,11 +18,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await sendDeliveryReminders();
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e: any) {
+    return NextResponse.json({ ...result });
+  } catch (e: unknown) {
     console.error('[cron/delivery-reminders] Error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }

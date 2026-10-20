@@ -142,7 +142,7 @@ export async function seedKits(): Promise<SeedKitsResult> {
         productName: string;
         versionId: string | null;
         versionLabel: string | null;
-        unitPrice: any;
+        unitPrice: unknown;
         weight: number | null;
         qty: number;
       }> = [];
@@ -252,8 +252,8 @@ export async function seedKits(): Promise<SeedKitsResult> {
         });
         result.created.push(seed.slug);
       }
-    } catch (e: any) {
-      result.errors.push(`Kit ${seed.slug}: ${e.message || String(e)}`);
+    } catch (e: unknown) {
+      result.errors.push(`Kit ${seed.slug}: ${(e as Error).message || String(e)}`);
     }
   }
 

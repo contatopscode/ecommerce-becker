@@ -34,30 +34,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orde
     if (order.paymentId && order.status === 'PENDING' && order.paymentStatus === 'PENDING') {
       const mpStatus = await mercadopagoLib.getPaymentStatus(order.paymentId);
       if (mpStatus && mpStatus.status === 'approved') {
-        const newStatus = mercadopagoLib.mapMPStatusToOrderStatus(mpStatus.status);
+        // 'approved' mapeia sempre para PAID, válido em OrderStatus e PaymentStatus
+        const paidAt = new Date();
         await prisma.order.update({
           where: { id: order.id },
           data: {
-            status: newStatus,
-            paymentStatus: newStatus,
-            paidAt: new Date(),
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            paidAt,
           },
         });
         return NextResponse.json({
           ok: true,
           order: {
             ...order,
-            status: newStatus,
-            paymentStatus: newStatus,
-            paidAt: new Date().toISOString(),
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            paidAt: paidAt.toISOString(),
           },
         });
       }
     }
 
     return NextResponse.json({ ok: true, order });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[order status] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

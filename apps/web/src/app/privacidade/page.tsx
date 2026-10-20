@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export const metadata = {
   title: 'Política de Privacidade',
   description: 'Como coletamos, usamos e protegemos seus dados pessoais conforme a LGPD.',
@@ -7,9 +9,9 @@ export default function PrivacidadePage() {
   return (
     <div className="min-h-screen bg-becker-cream/30">
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <a href="/" className="text-sm text-becker-purple font-semibold hover:underline mb-4 inline-block">
+        <Link href="/" className="text-sm text-becker-purple font-semibold hover:underline mb-4 inline-block">
           ← Voltar para a loja
-        </a>
+        </Link>
 
         <h1 className="text-3xl lg:text-4xl font-extrabold mb-2">Política de Privacidade</h1>
         <p className="text-sm text-becker-slate mb-8">Última atualização: 08/08/2026</p>
@@ -106,7 +108,7 @@ export default function PrivacidadePage() {
               Adotamos medidas técnicas e organizacionais para proteger seus dados:
             </p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
-              <li>HTTPS com SSL (Caddy + Let's Encrypt)</li>
+              <li>HTTPS com SSL (Caddy + Let&apos;s Encrypt)</li>
               <li>Cookies httpOnly e SameSite</li>
               <li>Senhas hasheadas (sha256)</li>
               <li>Autenticação 2FA para administradores</li>

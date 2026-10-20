@@ -3,14 +3,14 @@
 // A interatividade (qty, versões, CEP, carrinho) fica no ProductClient
 // ============================================================
 
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
-import { ProductCard } from '@/components/ProductCard';
 import { ProductClient } from './ProductClient';
+import { ProductCard } from '@/components/ProductCard';
 import { fetchProductBySlug, fetchRelatedProducts } from '@/lib/products';
-import { prisma } from '@becker/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="text-sm text-becker-slate">
-          <a href="/" className="hover:underline">Home</a> ›{' '}
+          <Link href="/" className="hover:underline">Home</Link> ›{' '}
           <a href={`/categoria/${product.category.slug}`} className="hover:underline">
             {product.category.name}
           </a>{' '}

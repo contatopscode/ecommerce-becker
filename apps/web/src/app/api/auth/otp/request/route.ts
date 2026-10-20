@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { whatsapp } = await req.json();
     const result = await requestOTP(whatsapp);
     return NextResponse.json(result);
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 400 });
   }
 }

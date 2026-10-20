@@ -5,10 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
+import { verificarCupom } from '@/lib/cupom';
 
 export async function POST(req: NextRequest) {
   try {
     const { code, orderTotal } = await req.json();
+
+    if (typeof orderTotal !== 'number' || !Number.isFinite(orderTotal) || orderTotal <= 0) {
+      return NextResponse.json({ ok: false, error: 'Total do pedido inválido' }, { status: 400 });
+    }
 
     if (!code) {
       return NextResponse.json({ ok: false, error: 'Código obrigatório' }, { status: 400 });
@@ -20,35 +25,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'Cupom não encontrado' }, { status: 404 });
     }
 
-    if (!coupon.active) {
-      return NextResponse.json({ ok: false, error: 'Cupom inativo' }, { status: 400 });
-    }
-
-    const now = new Date();
-    if (coupon.validFrom && coupon.validFrom > now) {
-      return NextResponse.json({ ok: false, error: 'Cupom ainda não está válido' }, { status: 400 });
-    }
-
-    if (coupon.validUntil && coupon.validUntil < now) {
-      return NextResponse.json({ ok: false, error: 'Cupom expirado' }, { status: 400 });
-    }
-
-    if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-      return NextResponse.json({ ok: false, error: 'Cupom esgotado' }, { status: 400 });
-    }
-
-    if (coupon.minOrder && orderTotal < Number(coupon.minOrder)) {
-      return NextResponse.json({
-        ok: false,
-        error: `Pedido mínimo de R$ ${Number(coupon.minOrder).toFixed(2)} pra esse cupom`,
-      }, { status: 400 });
+    const check = verificarCupom(coupon, orderTotal);
+    if (!check.ok) {
+      return NextResponse.json({ ok: false, error: check.error }, { status: check.status });
     }
 
     // type pode ser 'percent' (desconto %) ou 'fixed' (valor fixo) ou 'shipping' (frete grátis)
     const percent = coupon.type === 'percent'
-      ? Number(coupon.value)
+      ? coupon.discount
       : coupon.type === 'fixed'
-        ? (Number(coupon.value) / orderTotal) * 100
+        ? (coupon.discount / orderTotal) * 100
         : 0;
 
     return NextResponse.json({
@@ -57,11 +43,11 @@ export async function POST(req: NextRequest) {
         code: coupon.code,
         type: coupon.type,
         percent: Math.round(percent),
-        value: Number(coupon.value),
+        value: coupon.discount,
         minOrder: coupon.minOrder ? Number(coupon.minOrder) : null,
       },
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

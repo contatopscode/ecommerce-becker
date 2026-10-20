@@ -65,7 +65,7 @@ export function KitCard({ kit }: KitCardProps) {
       stock: 99, // kits não tem estoque limitado
       // Campo extra pra identificar que é kit
       isKit: true,
-    } as any);
+    } as unknown as Parameters<typeof cart.add>[0]);
     toast(`🎁 ${kit.name} adicionado!`, 'success');
   };
 

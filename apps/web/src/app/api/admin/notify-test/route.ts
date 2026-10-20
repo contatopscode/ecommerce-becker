@@ -5,11 +5,11 @@
 // Envia mensagem de teste pro WhatsApp do admin via Evolution
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { notifyAdmin } from '@/lib/whatsapp-admin';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     // Auth: só admin pode testar
     const session = await getSession();
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       message: 'Mensagem de teste enviada pro WhatsApp do admin',
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

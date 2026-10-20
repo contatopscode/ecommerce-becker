@@ -3,11 +3,11 @@
 // POST /api/admin/payments/test
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { mercadopagoLib, getActiveProvider } from '@/lib/payments';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await getSession();
   if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'Sem permissão' }, { status: 403 });
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: false, error: 'Provider desconhecido' });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }

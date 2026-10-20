@@ -51,7 +51,7 @@ export function getConsent(): Consent | null {
 /**
  * Salva consentimento (cookie + localStorage)
  */
-export function setConsent(consent: Omit<Consent, 'timestamp' | 'version'>): void {
+export function setConsent(consent: Omit<Consent, 'essential' | 'timestamp' | 'version'>): void {
   if (typeof window === 'undefined') return;
 
   const fullConsent: Consent = {
@@ -99,6 +99,16 @@ export function rejectAll(): void {
   setConsent({ analytics: false, marketing: false });
 }
 
+interface FbqFn {
+  (...args: unknown[]): void;
+  q?: unknown[];
+}
+
+interface ConsentWindow {
+  dataLayer?: unknown[];
+  fbq?: FbqFn;
+}
+
 /**
  * Carrega scripts baseado no consentimento
  * Chamado após aceitar/atualizar consentimento
@@ -107,9 +117,9 @@ export function loadScriptsForConsent(): void {
   // GA4 - Analytics
   if (hasConsent('analytics') && process.env.NEXT_PUBLIC_GA4_ID) {
     loadScript(`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA4_ID}`);
-    (window as any).dataLayer = (window as any).dataLayer || [];
-    function gtag(...args: any[]) {
-      (window as any).dataLayer.push(args);
+    (window as unknown as ConsentWindow).dataLayer = (window as unknown as ConsentWindow).dataLayer || [];
+    function gtag(...args: unknown[]) {
+      (window as unknown as ConsentWindow).dataLayer!.push(args);
     }
     gtag('js', new Date());
     gtag('config', process.env.NEXT_PUBLIC_GA4_ID);
@@ -117,11 +127,13 @@ export function loadScriptsForConsent(): void {
 
   // Facebook Pixel - Marketing
   if (hasConsent('marketing') && process.env.NEXT_PUBLIC_FB_PIXEL_ID) {
-    (window as any).fbq = (...args: any[]) => {
-      ((window as any).fbq.q = (window as any).fbq.q || []).push(args);
+    const w = window as unknown as ConsentWindow;
+    const fbq: FbqFn = (...args: unknown[]) => {
+      (fbq.q = fbq.q || []).push(args);
     };
-    (window as any).fbq('init', process.env.NEXT_PUBLIC_FB_PIXEL_ID);
-    (window as any).fbq('track', 'PageView');
+    w.fbq = fbq;
+    w.fbq('init', process.env.NEXT_PUBLIC_FB_PIXEL_ID);
+    w.fbq('track', 'PageView');
     loadScript('https://connect.facebook.net/en_US/fbevents.js');
   }
 }

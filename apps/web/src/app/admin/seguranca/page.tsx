@@ -8,7 +8,7 @@ export default function SegurancaPage() {
   const [enabled, setEnabled] = useState(false);
   const [step, setStep] = useState<'idle' | 'setup' | 'confirm' | 'disable'>('idle');
   const [secret, setSecret] = useState('');
-  const [otpauth, setOtpauth] = useState('');
+  const [, setOtpauth] = useState('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [token, setToken] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState('');
@@ -47,8 +47,8 @@ export default function SegurancaPage() {
       setQrDataUrl(url);
 
       setStep('setup');
-    } catch (e: any) {
-      toast(e.message, 'error');
+    } catch (e: unknown) {
+      toast((e as Error).message, 'error');
     }
     setLoading(false);
   }
@@ -70,8 +70,8 @@ export default function SegurancaPage() {
       setEnabled(true);
       setStep('idle');
       setToken('');
-    } catch (e: any) {
-      toast(e.message, 'error');
+    } catch (e: unknown) {
+      toast((e as Error).message, 'error');
     }
     setLoading(false);
   }
@@ -97,8 +97,8 @@ export default function SegurancaPage() {
       setEnabled(false);
       setStep('idle');
       setToken('');
-    } catch (e: any) {
-      toast(e.message, 'error');
+    } catch (e: unknown) {
+      toast((e as Error).message, 'error');
     }
     setLoading(false);
   }

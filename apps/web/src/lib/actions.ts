@@ -5,7 +5,7 @@
 
 'use server';
 
-import { prisma } from '@becker/db';
+import { prisma, Prisma } from '@becker/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { generateOrderNumber, generateTrackingCode } from './utils';
@@ -22,7 +22,7 @@ export async function fetchProducts(params: {
   isNew?: boolean;
   take?: number;
 }) {
-  const where: any = { active: true };
+  const where: Prisma.ProductWhereInput = { active: true };
   if (params.category && params.category !== 'todos') where.category = { slug: params.category };
   if (params.search) {
     where.OR = [
@@ -77,8 +77,12 @@ export async function fetchCategories() {
 }
 
 // ============ FRETE ============
-export async function calcShippingAction(cep: string, orderTotal: number) {
-  return calculateShipping(cep, orderTotal);
+export async function calcShippingAction(
+  cep: string,
+  items: { weight: number; qty: number }[],
+  orderTotal: number
+) {
+  return calculateShipping(cep, items, orderTotal);
 }
 
 // ============ PEDIDO ============
@@ -185,7 +189,7 @@ export async function createOrderAction(input: z.infer<typeof checkoutSchema>) {
       total,
       status: 'PENDING',
       paymentStatus: 'PENDING',
-      source: 'WEBSITE',
+      source: 'SITE',
       paymentMethod: parsed.paymentMethod,
       shippingMethod: parsed.shippingMethod,
       tracking,

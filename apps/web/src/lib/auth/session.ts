@@ -6,7 +6,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { prisma } from '@becker/db';
-import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
+import { sendWhatsApp } from '@/lib/whatsapp-client';
 import crypto from 'crypto';
 
 const SESSION_COOKIE = 'becker_session';
@@ -75,11 +75,11 @@ export async function requestOTP(whatsapp: string): Promise<{ ok: boolean; error
       return { ok: false, error: 'Erro ao enviar código' };
     }
     return { ok: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (process.env.NODE_ENV !== 'production') {
       return { ok: true, code };
     }
-    return { ok: false, error: e.message };
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
