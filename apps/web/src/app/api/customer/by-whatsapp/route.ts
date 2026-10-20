@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
             addresses: true,
             orders: true,
           },
-        });
+        }) as unknown as typeof user;
       } catch (e: any) {
         // Se der erro de duplicata (race condition), busca de novo
         user = await prisma.user.findFirst({

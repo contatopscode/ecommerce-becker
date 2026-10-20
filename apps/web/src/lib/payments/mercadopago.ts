@@ -210,7 +210,7 @@ export async function createPreference(input: {
 
     const result = await preference.create({
       body: {
-        items: input.items,
+        items: input.items as never,
         external_reference: input.orderId,
         payer: {
           name: input.customer.name,

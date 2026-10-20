@@ -51,7 +51,7 @@ export function getConsent(): Consent | null {
 /**
  * Salva consentimento (cookie + localStorage)
  */
-export function setConsent(consent: Omit<Consent, 'timestamp' | 'version'>): void {
+export function setConsent(consent: Omit<Consent, 'essential' | 'timestamp' | 'version'>): void {
   if (typeof window === 'undefined') return;
 
   const fullConsent: Consent = {

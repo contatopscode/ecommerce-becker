@@ -4,7 +4,7 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@becker/db';
+import { prisma, type Prisma } from '@becker/db';
 import { getSession } from '@/lib/auth/session';
 import { randomBytes } from 'crypto';
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
           isCover: true,
           isPrimary: true,
           order: 0,
-        },
+        } as Prisma.ProductImageUncheckedCreateInput,
       });
     }
 

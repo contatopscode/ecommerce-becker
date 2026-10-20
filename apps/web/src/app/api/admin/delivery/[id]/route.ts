@@ -19,7 +19,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || ((session as unknown as { user: { role: string } }).user.role !== 'ADMIN' && (session as unknown as { user: { role: string } }).user.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
@@ -58,7 +58,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+  if (!session || ((session as unknown as { user: { role: string } }).user.role !== 'ADMIN' && (session as unknown as { user: { role: string } }).user.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 

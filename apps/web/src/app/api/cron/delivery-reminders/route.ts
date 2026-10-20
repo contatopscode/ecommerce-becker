@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await sendDeliveryReminders();
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ...result });
   } catch (e: any) {
     console.error('[cron/delivery-reminders] Error:', e);
     return NextResponse.json(

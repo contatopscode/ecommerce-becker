@@ -99,7 +99,7 @@ export default async function AdminPedidoDetalhePage({
                 <div className="text-becker-slate">📱 {order.user.whatsapp}</div>
                 {order.user.email && <div className="text-becker-slate">📧 {order.user.email}</div>}
                 <div className="text-xs text-becker-slate mt-2">
-                  Pedidos anteriores: {order.user.orders?.length ?? 0}
+                  Pedidos anteriores: {(order.user as { orders?: unknown[] }).orders?.length ?? 0}
                 </div>
               </div>
             ) : (

@@ -36,7 +36,7 @@ export default async function AdminProdutosPage() {
     isNew: p.isNew,
     isEco: p.isEco,
     rating: Number(p.rating),
-    images: p.images.map((i) => ({ id: i.id, url: i.url, isCover: i.isCover, isPrimary: i.isPrimary })),
+    images: p.images.map((i) => ({ id: i.id, url: i.url, isCover: (i as { isCover?: boolean }).isCover as boolean, isPrimary: i.isPrimary })),
     versions: p.versions.map((v) => ({
       id: v.id,
       label: v.label,

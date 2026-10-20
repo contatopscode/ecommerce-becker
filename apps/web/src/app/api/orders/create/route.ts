@@ -137,8 +137,8 @@ export async function POST(req: NextRequest) {
       const c = await prisma.coupon.findUnique({ where: { code: cupom.toUpperCase() } });
       if (c && c.active) {
         couponId = c.id;
-        if (c.type === 'percent') discount = subtotal * (Number(c.value) / 100);
-        else if (c.type === 'fixed') discount = Number(c.value);
+        if (c.type === 'percent') discount = subtotal * (Number((c as { value?: unknown }).value) / 100);
+        else if (c.type === 'fixed') discount = Number((c as { value?: unknown }).value);
         // Incrementar uso
         await prisma.coupon.update({
           where: { id: c.id },

@@ -57,7 +57,7 @@ export async function notifyOrder(input: NotifyOrderInput) {
 
     const orderData = {
       number: order.number,
-      customerName: order.user?.name || order.guestName || 'Cliente',
+      customerName: order.user?.name || (order as { guestName?: string | null }).guestName || 'Cliente',
       customerPhone: phone || '',
       items: order.items.map((i) => ({
         productName: i.productName,

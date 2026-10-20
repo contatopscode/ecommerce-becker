@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { prisma } from '@becker/db';
+import { prisma, type Prisma } from '@becker/db';
 import { isValidCronToken } from '@/lib/backup';
 
 const execAsync = promisify(exec);
@@ -168,7 +168,7 @@ async function cleanDuplicates() {
       for (const v of toDelete) {
         // Verifica se há OrderItem referenciando — se houver, não deleta (perderia histórico)
         const orderItemCount = await prisma.orderItem.count({
-          where: { productVersionId: v.id },
+          where: { productVersionId: v.id } as Prisma.OrderItemWhereInput,
         });
         if (orderItemCount > 0) {
           // Mantém o duplicado mas renomeia SKU
@@ -263,7 +263,7 @@ async function cleanDuplicates() {
       for (const u of toDelete) {
         const orderCount = await prisma.order.count({ where: { userId: u.id } });
         if (orderCount > 0) {
-          const newEmail = `${u.email.split('@')[0]}+DUP-${u.id.slice(-6)}@${u.email.split('@')[1]}`;
+          const newEmail = `${u.email!.split('@')[0]}+DUP-${u.id.slice(-6)}@${u.email!.split('@')[1]}`;
           await prisma.user.update({
             where: { id: u.id },
             data: { email: newEmail },

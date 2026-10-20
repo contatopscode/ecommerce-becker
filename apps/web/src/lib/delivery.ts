@@ -5,7 +5,7 @@
 // ============================================================
 
 import { prisma } from '@becker/db';
-import { sendWhatsApp } from './whatsapp-client';
+import { sendWhatsApp, type SendTextOptions } from './whatsapp-client';
 import { whatsappTemplates } from './whatsapp-templates';
 import { notifyAdminDelivery } from './notify';
 
@@ -104,7 +104,7 @@ export async function createOutForDelivery(
         await sendWhatsApp({
           phone: order.guestWhatsapp,
           message,
-        });
+        } as unknown as SendTextOptions);
       } catch (e) {
         console.error('[delivery] WhatsApp send error:', e);
       }
@@ -200,7 +200,7 @@ export async function confirmDelivery(
 
       if (delivery.order.guestWhatsapp) {
         try {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: thanksMsg });
+          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: thanksMsg } as unknown as SendTextOptions);
         } catch (e) {
           console.error('[delivery] Thanks WhatsApp error:', e);
         }
@@ -236,7 +236,7 @@ export async function confirmDelivery(
 
       if (delivery.order.guestWhatsapp) {
         try {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: problemMsg });
+          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: problemMsg } as unknown as SendTextOptions);
         } catch (e) {
           console.error('[delivery] Problem WhatsApp error:', e);
         }
@@ -311,7 +311,7 @@ export async function sendDeliveryReminders(): Promise<ReminderResult> {
         });
 
         if (delivery.order.guestWhatsapp) {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message });
+          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message } as unknown as SendTextOptions);
         }
 
         await prisma.delivery.update({

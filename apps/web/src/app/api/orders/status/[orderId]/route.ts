@@ -38,8 +38,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orde
         await prisma.order.update({
           where: { id: order.id },
           data: {
-            status: newStatus,
-            paymentStatus: newStatus,
+            status: newStatus as never,
+            paymentStatus: newStatus as never,
             paidAt: new Date(),
           },
         });
@@ -47,8 +47,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orde
           ok: true,
           order: {
             ...order,
-            status: newStatus,
-            paymentStatus: newStatus,
+            status: newStatus as never,
+            paymentStatus: newStatus as never,
             paidAt: new Date().toISOString(),
           },
         });
