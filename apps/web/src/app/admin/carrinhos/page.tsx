@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { formatPrice } from '@/lib/utils';
+import Link from 'next/link';
 
 interface Cart {
   id: string;
   whatsapp: string;
   customerName: string | null;
-  items: any[];
+  items: Array<{ qty: number; name: string }>;
   subtotal: number;
   totalItems: number;
   cupom: string | null;
@@ -63,8 +64,8 @@ export default function CarrinhosPage() {
       } else {
         alert('❌ ' + data.error);
       }
-    } catch (e: any) {
-      alert('Erro: ' + e.message);
+    } catch (e: unknown) {
+      alert('Erro: ' + (e as Error).message);
     }
     setProcessing(false);
   }
@@ -92,8 +93,8 @@ export default function CarrinhosPage() {
       } else {
         setTestResult({ type: 'error', message: data.error || 'Erro' });
       }
-    } catch (e: any) {
-      setTestResult({ type: 'error', message: e.message });
+    } catch (e: unknown) {
+      setTestResult({ type: 'error', message: (e as Error).message });
     }
     setTestSending(false);
   }
@@ -190,11 +191,11 @@ export default function CarrinhosPage() {
         <details className="mt-3 text-xs text-becker-slate">
           <summary className="cursor-pointer font-semibold">💡 Como testar o fluxo completo (carrinho real abandonado)</summary>
           <ol className="list-decimal pl-5 mt-2 space-y-1">
-            <li>Abra a loja em aba anônima: <a href="/" className="underline">becker.pscode.ia.br</a></li>
+            <li>Abra a loja em aba anônima: <Link href="/" className="underline">becker.pscode.ia.br</Link></li>
             <li>Adicione 1-2 produtos ao carrinho</li>
             <li>Vá no checkout e digite SEU WhatsApp no step 1</li>
             <li>Volte aqui e veja o carrinho aparecer na lista abaixo</li>
-            <li>Use o botão "⚡ Processar agora" pra forçar envio (vai dar 401 se CRON_TOKEN não tá no Easypanel, mas dá pra testar manual com botões acima)</li>
+            <li>Use o botão &quot;⚡ Processar agora&quot; pra forçar envio (vai dar 401 se CRON_TOKEN não tá no Easypanel, mas dá pra testar manual com botões acima)</li>
             <li>Verifique se WhatsApp chegou no seu celular</li>
           </ol>
         </details>
@@ -276,7 +277,7 @@ export default function CarrinhosPage() {
                     </td>
                     <td className="p-3">
                       <div className="text-xs">
-                        {cart.items.slice(0, 2).map((item: any, i: number) => (
+                        {cart.items.slice(0, 2).map((item, i: number) => (
                           <div key={i} className="truncate max-w-[200px]">
                             {item.qty}x {item.name}
                           </div>
@@ -321,7 +322,7 @@ export default function CarrinhosPage() {
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: any; color?: 'green' | 'purple' }) {
+function StatCard({ label, value, color }: { label: string; value: string | number; color?: 'green' | 'purple' }) {
   const colorClass = color === 'green' ? 'text-green-600' : color === 'purple' ? 'text-becker-purple' : '';
   return (
     <div className="bg-white rounded-xl border border-becker-line p-3">

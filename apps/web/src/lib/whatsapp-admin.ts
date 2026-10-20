@@ -109,9 +109,9 @@ export async function notifyAdmin(text: string): Promise<{ ok: boolean; error?: 
     }
 
     return { ok: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin-notify] Exceção:', e);
-    return { ok: false, error: e.message };
+    return { ok: false, error: (e as Error).message };
   }
 }
 

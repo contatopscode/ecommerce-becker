@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       skuMap.set(v.sku, list);
     }
 
-    const duplicates = Array.from(skuMap.entries()).filter(([_, list]) => list.length > 1);
+    const duplicates = Array.from(skuMap.entries()).filter(([, list]) => list.length > 1);
 
     if (duplicates.length === 0) {
       return NextResponse.json({
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const deleted: string[] = [];
     for (const [sku, list] of duplicates) {
       // Mantém o primeiro, deleta o resto
-      const [keep, ...toDelete] = list;
+      const [, ...toDelete] = list;
       for (const v of toDelete) {
         await prisma.productVersion.delete({ where: { id: v.id } });
         deleted.push(`${sku} (id: ${v.id}, product: ${v.productId})`);
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
       message: `${deleted.length} versões duplicadas removidas`,
       deleted,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[fix-duplicates] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }

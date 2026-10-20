@@ -103,10 +103,10 @@ export async function POST(req: NextRequest) {
     });
 
     return res;
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[customer/cookie] POST error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }

@@ -21,9 +21,9 @@ export default function DevToolsPage() {
         toast('❌ ' + data.error, 'error');
         setOutput(data.output || data.error);
       }
-    } catch (e: any) {
-      toast('Erro: ' + e.message, 'error');
-      setOutput(e.message);
+    } catch (e: unknown) {
+      toast('Erro: ' + (e instanceof Error ? e.message : String(e)), 'error');
+      setOutput((e instanceof Error ? e.message : String(e)));
     }
     setRunning(false);
   }
@@ -69,7 +69,7 @@ export default function DevToolsPage() {
           <ul className="list-disc pl-5 text-amber-800 space-y-1 text-xs">
             <li>Você mudou o <code>schema.prisma</code> e adicionou tabela nova</li>
             <li>O Easypanel não rebuildou (build ID não mudou)</li>
-            <li>Endpoint que usa a tabela nova dá erro "table X does not exist"</li>
+            <li>Endpoint que usa a tabela nova dá erro &quot;table X does not exist&quot;</li>
             <li><strong>Não precisa</strong> usar se o build foi completo (start.sh já aplica)</li>
           </ul>
         </div>

@@ -67,8 +67,8 @@ export async function GET(req: NextRequest) {
       categories,
       total: products.length + categories.length,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[search] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

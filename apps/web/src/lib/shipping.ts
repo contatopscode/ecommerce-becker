@@ -42,13 +42,13 @@ export async function getShippingConfig(): Promise<ShippingConfig> {
       where: { key: { startsWith: 'shipping_' } },
     });
 
-    const cfg: any = { ...DEFAULT_CONFIG };
+    const cfg: Record<string, string | number> = { ...DEFAULT_CONFIG };
     for (const s of settings) {
       const key = s.key.replace('shipping_', '');
       const val = isNaN(Number(s.value)) ? s.value : Number(s.value);
       if (key in cfg) cfg[key] = val;
     }
-    return cfg as ShippingConfig;
+    return cfg as unknown as ShippingConfig;
   } catch {
     return DEFAULT_CONFIG;
   }

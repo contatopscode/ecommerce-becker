@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
   try {
     const result = await seedKits();
     return NextResponse.json({ ok: true, ...result });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/seed-kits] Error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro ao rodar seed' },
+      { ok: false, error: (e as Error).message || 'Erro ao rodar seed' },
       { status: 500 }
     );
   }

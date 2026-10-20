@@ -2,7 +2,7 @@
 // Server-side: acesso a produtos (Prisma)
 // ============================================================
 
-import { prisma } from '@becker/db';
+import { prisma, Prisma } from '@becker/db';
 
 export async function fetchCategories() {
   return prisma.category.findMany({
@@ -25,7 +25,7 @@ export async function fetchProducts(opts?: {
   take?: number;
   orderBy?: 'price-asc' | 'price-desc' | 'rating' | 'recent';
 }) {
-  const where: any = { active: true };
+  const where: Prisma.ProductWhereInput = { active: true };
   if (opts?.category && opts.category !== 'todos') {
     where.category = { slug: opts.category };
   }
@@ -41,7 +41,7 @@ export async function fetchProducts(opts?: {
   if (opts?.isEco) where.isEco = true;
   if (opts?.isNew) where.isNew = true;
 
-  let orderBy: any = { createdAt: 'desc' };
+  let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
   if (opts?.orderBy === 'rating') orderBy = { rating: 'desc' };
   if (opts?.orderBy === 'recent') orderBy = { createdAt: 'desc' };
 
@@ -131,12 +131,12 @@ export function getPrimaryImage(p: { images: { url: string; isPrimary: boolean; 
   return primary?.url || '/img/placeholder.jpg';
 }
 
-export function getPriceFrom(p: { versions: { price: any }[] }): number {
+export function getPriceFrom(p: { versions: { price: unknown }[] }): number {
   if (p.versions.length === 0) return 0;
   return Math.min(...p.versions.map((v) => Number(v.price)));
 }
 
-export function getPriceTo(p: { versions: { price: any }[] }): number {
+export function getPriceTo(p: { versions: { price: unknown }[] }): number {
   if (p.versions.length === 0) return 0;
   return Math.max(...p.versions.map((v) => Number(v.price)));
 }

@@ -32,7 +32,7 @@ const PROMO_DEFAULTS: Setting[] = [
   { key: 'promo_first_buy_coupon', value: 'BECKER15', category: 'promo', label: 'Cupom automático de primeira compra', type: 'text' },
 ];
 
-export function ConfigForm({ settings, session }: { settings: Setting[]; session: any }) {
+export function ConfigForm({ settings, session }: { settings: Setting[]; session: { name?: string; whatsapp?: string; role?: string } | null | undefined }) {
   // Mescla settings existentes com defaults de payments
   const allSettings = [...settings];
   for (const def of PAYMENT_DEFAULTS) {

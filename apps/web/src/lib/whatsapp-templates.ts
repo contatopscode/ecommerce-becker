@@ -141,7 +141,7 @@ Se você não solicitou isso ou tem alguma dúvida, é só responder aqui. Terem
   },
 
   /** Lembrete de carrinho abandonado (futuro) */
-  cartAbandoned: (o: { customerName: string; items: any[]; total: number; cartUrl: string }) => {
+  cartAbandoned: (o: { customerName: string; items: Array<{ name: string }>; total: number; cartUrl: string }) => {
     const itemsList = o.items
       .slice(0, 3)
       .map((i) => `  • ${i.name}`)

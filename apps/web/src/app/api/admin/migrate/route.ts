@@ -6,14 +6,14 @@
 // Uso: quando o start.sh não funcionou (Easypanel pode não rebuildar)
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { getSession } from '@/lib/auth/session';
 
 const execAsync = promisify(exec);
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await getSession();
   if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'Sem permissão' }, { status: 403 });
@@ -40,18 +40,18 @@ export async function POST(req: NextRequest) {
       message: 'Schema aplicado com sucesso',
       output: stdout + (stderr ? `\n--- stderr ---\n${stderr}` : ''),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[migrate] Erro:', e);
     return NextResponse.json({
       ok: false,
-      error: e.message || 'Erro ao aplicar schema',
-      output: e.stdout || e.stderr || '',
+      error: (e as Error).message || 'Erro ao aplicar schema',
+      output: (e as ExecErr).stdout || (e as ExecErr).stderr || '',
     }, { status: 500 });
   }
 }
 
 // GET também disponível para testar se está funcionando
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getSession();
   if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPER_ADMIN')) {
     return NextResponse.json({ ok: false, error: 'Sem permissão' }, { status: 403 });
@@ -62,3 +62,5 @@ export async function GET(req: NextRequest) {
     message: 'POST /api/admin/migrate para aplicar schema do Prisma',
   });
 }
+
+type ExecErr = { stdout?: string; stderr?: string };

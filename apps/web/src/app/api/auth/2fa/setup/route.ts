@@ -4,11 +4,11 @@
 // Retorna: { secret, otpauth, backupCodes }
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { setup2FA } from '@/lib/auth/2fa';
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ ok: false, error: 'Não autenticado' }, { status: 401 });
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       otpauth: result.otpauth,
       backupCodes: result.backupCodes,
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

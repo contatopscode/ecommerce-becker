@@ -18,8 +18,8 @@ interface ProductImage {
 interface ProductVersion {
   id: string;
   label: string;
-  price: any;
-  originalPrice: any;
+  price: number | string | { toString(): string } | null;
+  originalPrice: number | string | { toString(): string } | null;
   stock: number;
 }
 

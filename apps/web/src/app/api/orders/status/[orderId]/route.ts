@@ -56,8 +56,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orde
     }
 
     return NextResponse.json({ ok: true, order });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[order status] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

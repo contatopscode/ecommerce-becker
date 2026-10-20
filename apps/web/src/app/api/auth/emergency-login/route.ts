@@ -83,8 +83,8 @@ export async function POST(req: NextRequest) {
       message: 'Sessão criada! Você já pode acessar /admin',
       session: sessionData,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[emergency-login] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

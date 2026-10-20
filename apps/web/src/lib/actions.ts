@@ -5,7 +5,7 @@
 
 'use server';
 
-import { prisma } from '@becker/db';
+import { prisma, Prisma } from '@becker/db';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { generateOrderNumber, generateTrackingCode } from './utils';
@@ -22,7 +22,7 @@ export async function fetchProducts(params: {
   isNew?: boolean;
   take?: number;
 }) {
-  const where: any = { active: true };
+  const where: Prisma.ProductWhereInput = { active: true };
   if (params.category && params.category !== 'todos') where.category = { slug: params.category };
   if (params.search) {
     where.OR = [

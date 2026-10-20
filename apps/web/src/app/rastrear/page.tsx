@@ -5,18 +5,26 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { getOrderAction, getOrdersByWhatsappAction } from '@/lib/actions';
 import { formatPrice, statusLabel, statusColor, statusStepIndex } from '@/lib/utils';
+
+interface TrackedOrder {
+  id: string;
+  number: string;
+  date: string;
+  status: string;
+  total?: number;
+  tracking?: string | null;
+}
 
 const STATUS_STEPS = ['Pago', 'Separação', 'Enviado', 'Entregue'];
 
 export default function RastrearPage() {
   const [orderId, setOrderId] = useState('');
   const [phone, setPhone] = useState('');
-  const [order, setOrder] = useState<any>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [order, setOrder] = useState<TrackedOrder | null>(null);
+  const [orders, setOrders] = useState<TrackedOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
   const searchByNumber = async () => {
@@ -94,7 +102,7 @@ export default function RastrearPage() {
   );
 }
 
-function OrderCard({ order }: { order: any }) {
+function OrderCard({ order }: { order: TrackedOrder }) {
   const stepIdx = statusStepIndex(order.status);
   const color = statusColor(order.status);
   return (

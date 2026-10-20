@@ -274,7 +274,7 @@ export default async function HomePage() {
                 Acesse a Becker em 1 toque direto da tela do seu celular, sem precisar baixar nada.
               </p>
               <p className="text-xs text-becker-slate">
-                Toque em <strong>Compartilhar</strong> e depois em <strong>"Adicionar à tela de início"</strong>
+                Toque em <strong>Compartilhar</strong> e depois em <strong>&quot;Adicionar à tela de início&quot;</strong>
               </p>
             </div>
           </div>

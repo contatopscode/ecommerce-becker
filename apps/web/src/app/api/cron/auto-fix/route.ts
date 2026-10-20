@@ -14,7 +14,7 @@ import { isValidCronToken } from '@/lib/backup';
 const execAsync = promisify(exec);
 
 async function getDuplicates() {
-  const report: any[] = [];
+  const report: Record<string, unknown>[] = [];
 
   // Product.sku
   const products = await prisma.product.findMany({
@@ -115,7 +115,7 @@ async function getDuplicates() {
 }
 
 async function cleanDuplicates() {
-  const report: any[] = [];
+  const report: Record<string, unknown>[] = [];
 
   // Product.sku: mantém o primeiro, deleta os demais (com cascade)
   const products = await prisma.product.findMany({
@@ -300,9 +300,9 @@ export async function GET(req: NextRequest) {
       duplicatesCount: duplicates.length,
       duplicates,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[auto-fix:GET] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }
 
@@ -332,12 +332,12 @@ export async function POST(req: NextRequest) {
       cleanReport,
       migrateOutput: stdout + (stderr ? `\n--- stderr ---\n${stderr}` : ''),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[auto-fix:POST] Erro:', e);
     return NextResponse.json({
       ok: false,
-      error: e.message || 'Erro ao limpar/migrar',
-      output: e.stdout || e.stderr || '',
+      error: (e as Error).message || 'Erro ao limpar/migrar',
+      output: (e as { stdout?: string; stderr?: string }).stdout || (e as { stderr?: string }).stderr || '',
     }, { status: 500 });
   }
 }

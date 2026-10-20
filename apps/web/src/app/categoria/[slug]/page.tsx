@@ -3,6 +3,8 @@
 // ============================================================
 
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import type { ComponentProps } from 'react';
 import { SiteHeader } from '@/components/SiteHeader';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
@@ -25,7 +27,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     fetchCategories(),
     fetchProducts({
       category: slug === 'todos' ? undefined : slug,
-      orderBy: (sort as any) || 'recent',
+      orderBy: (sort as 'price-asc' | 'price-desc' | 'rating' | 'recent' | undefined) || 'recent',
     }),
     slug === 'todos' ? null : fetchCategoryBySlug(slug),
   ]);
@@ -38,7 +40,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-sm text-becker-slate mb-4">
-          <a href="/" className="hover:underline">Home</a> ›{' '}
+          <Link href="/" className="hover:underline">Home</Link> ›{' '}
           <span className="text-becker-ink font-medium">{category?.name || 'Todos os produtos'}</span>
         </div>
 
@@ -77,13 +79,13 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="display text-xl font-bold mb-2">Nenhum produto encontrado</h3>
             <p className="text-becker-slate mb-4">Volte para a home e explore outras categorias.</p>
-            <a href="/" className="inline-block bg-becker-purple text-white font-semibold px-5 py-2.5 rounded-full">
+            <Link href="/" className="inline-block bg-becker-purple text-white font-semibold px-5 py-2.5 rounded-full">
               Voltar à home
-            </a>
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {products.map((p) => <ProductCard key={p.id} product={p as any} />)}
+            {products.map((p) => <ProductCard key={p.id} product={p as unknown as ComponentProps<typeof ProductCard>['product']} />)}
           </div>
         )}
       </div>

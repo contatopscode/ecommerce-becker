@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, userId: user.id });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[save-progress] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }

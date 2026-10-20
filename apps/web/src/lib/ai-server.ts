@@ -82,9 +82,9 @@ export async function chat(userMessage: string, history: ChatMessage[] = []): Pr
     const text = data.choices?.[0]?.message?.content;
     if (!text) return { success: false, error: 'Sem resposta' };
     return { success: true, response: text };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[ai] Erro:', e);
-    return { success: false, error: e.message };
+    return { success: false, error: (e as Error).message };
   }
 }
 
@@ -131,7 +131,7 @@ export async function detectIntent(message: string): Promise<'comprar' | 'status
     const data = await response.json();
     const intent = data.choices?.[0]?.message?.content?.toLowerCase().trim();
     if (['comprar', 'status', 'duvida', 'humano', 'saudacao', 'outro'].includes(intent)) {
-      return intent as any;
+      return intent as 'comprar' | 'status' | 'duvida' | 'humano' | 'saudacao' | 'outro';
     }
     return 'outro';
   } catch {

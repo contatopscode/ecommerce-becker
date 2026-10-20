@@ -49,7 +49,7 @@ export default async function AdminPedidoDetalhePage({
     REFUNDED: 'bg-gray-100 text-gray-800',
   };
 
-  const formatBRL = (n: any) => `R$ ${Number(n).toFixed(2)}`;
+  const formatBRL = (n: unknown) => `R$ ${Number(n).toFixed(2)}`;
   const formatDate = (d: Date | null) =>
     d ? new Date(d).toLocaleString('pt-BR') : '—';
 

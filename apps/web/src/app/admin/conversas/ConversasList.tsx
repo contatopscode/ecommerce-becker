@@ -6,7 +6,7 @@ interface Conversation {
   id: string;
   phone: string;
   customerName: string | null;
-  messages: any;
+  messages: unknown;
   resolved: boolean;
   humanTakeover: boolean;
   lastMessageAt: Date;
@@ -80,7 +80,7 @@ export function ConversasList({ conversations }: { conversations: Conversation[]
                   </div>
                   <div className="text-xs text-becker-slate truncate">
                     {Array.isArray(c.messages) && c.messages.length > 0
-                      ? (c.messages[c.messages.length - 1] as any).content?.substring(0, 50) + '...'
+                      ? c.messages[c.messages.length - 1].content?.substring(0, 50) + '...'
                       : '(sem mensagens)'}
                   </div>
                   <div className="flex gap-1 mt-1">
@@ -112,7 +112,7 @@ export function ConversasList({ conversations }: { conversations: Conversation[]
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-becker-cream/30">
-              {Array.isArray(selected.messages) ? selected.messages.map((m: any, i: number) => (
+              {Array.isArray(selected.messages) ? selected.messages.map((m, i: number) => (
                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-start' : 'justify-end'}`}>
                   <div className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
                     m.role === 'user' ? 'bg-white border border-becker-line' : 'bg-becker-purple text-white'

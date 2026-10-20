@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
             orders: true,
           },
         }) as unknown as typeof user;
-      } catch (e: any) {
+      } catch (e: unknown) {
         // Se der erro de duplicata (race condition), busca de novo
         user = await prisma.user.findFirst({
           where: { whatsapp: { in: formats } },
@@ -126,8 +126,8 @@ export async function GET(req: NextRequest) {
         suggestedName: user.name,
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[customer/by-whatsapp] Erro:', e);
-    return NextResponse.json({ ok: false, error: e.message || 'Erro interno' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) || 'Erro interno' }, { status: 500 });
   }
 }

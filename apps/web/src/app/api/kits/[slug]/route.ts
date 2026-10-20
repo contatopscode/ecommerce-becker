@@ -75,10 +75,10 @@ export async function GET(
         }),
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[api/kits/[slug]] Error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro ao buscar kit' },
+      { ok: false, error: (e as Error).message || 'Erro ao buscar kit' },
       { status: 500 }
     );
   }

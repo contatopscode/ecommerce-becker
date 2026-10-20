@@ -2,15 +2,15 @@
 // Admin Pedidos - listagem + mudança de status
 // ============================================================
 
-import { prisma } from '@becker/db';
+import { prisma, type Prisma } from '@becker/db';
 import Link from 'next/link';
 import { PedidosTable } from './PedidosTable';
 
 export const dynamic = 'force-dynamic';
 
 async function getOrders(status?: string) {
-  const where: any = {};
-  if (status && status !== 'ALL') where.status = status;
+  const where: Prisma.OrderWhereInput = {};
+  if (status && status !== 'ALL') where.status = status as Prisma.OrderWhereInput['status'];
 
   return prisma.order.findMany({
     where,

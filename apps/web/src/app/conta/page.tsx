@@ -13,13 +13,27 @@ import { toast } from '@/lib/cart';
 
 type Step = 'phone' | 'code' | 'logged';
 
+interface ContaSession {
+  name?: string | null;
+  whatsapp: string;
+}
+
+interface ContaOrder {
+  id: string;
+  number: string;
+  date: string;
+  itemCount: number;
+  status: string;
+  total: number;
+}
+
 export default function ContaPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<ContaSession | null>(null);
   const [resendTimer, setResendTimer] = useState(0);
 
   // Se já logado, redireciona
@@ -210,7 +224,7 @@ export default function ContaPage() {
   );
 }
 
-function ContaLogada({ session, onLogout }: { session: any; onLogout: () => void }) {
+function ContaLogada({ session, onLogout }: { session: ContaSession; onLogout: () => void }) {
   return (
     <PageShell>
       <ContaLogadaContent session={session} onLogout={onLogout} />
@@ -220,8 +234,8 @@ function ContaLogada({ session, onLogout }: { session: any; onLogout: () => void
 
 import { useEffect as useEffect2, useState as useState2 } from 'react';
 
-function ContaLogadaContent({ session, onLogout }: { session: any; onLogout: () => void }) {
-  const [orders, setOrders] = useState2<any[]>([]);
+function ContaLogadaContent({ session, onLogout }: { session: ContaSession; onLogout: () => void }) {
+  const [orders, setOrders] = useState2<ContaOrder[]>([]);
   const [loading, setLoading] = useState2(true);
 
   useEffect2(() => {

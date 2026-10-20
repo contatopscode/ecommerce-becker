@@ -44,10 +44,10 @@ export async function GET(
     }
 
     return NextResponse.json({ ok: true, delivery });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] GET error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }
@@ -104,10 +104,10 @@ export async function PATCH(
     });
 
     return NextResponse.json({ ok: true, delivery: updated });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[admin/delivery] PATCH error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro interno' },
+      { ok: false, error: (e as Error).message || 'Erro interno' },
       { status: 500 }
     );
   }

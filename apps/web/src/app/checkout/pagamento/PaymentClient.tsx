@@ -24,7 +24,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
-  const [pixData, setPixData] = useState<{
+  const [pixData] = useState<{
     qr_code: string;
     qr_code_base64: string;
     expiration_date?: string;
@@ -164,7 +164,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
   );
 }
 
-function PixPayment({ total, orderNumber, paymentId, pixData, onSimulate, paying }: {
+function PixPayment({ total, paymentId, pixData, onSimulate, paying }: {
   total: number;
   orderNumber: string;
   paymentId?: string;

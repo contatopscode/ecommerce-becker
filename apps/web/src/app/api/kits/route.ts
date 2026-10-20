@@ -41,10 +41,10 @@ export async function GET() {
         itemCount: k._count.items,
       })),
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[api/kits] Error:', e);
     return NextResponse.json(
-      { ok: false, error: e.message || 'Erro ao listar kits' },
+      { ok: false, error: (e instanceof Error ? e.message : String(e)) || 'Erro ao listar kits' },
       { status: 500 }
     );
   }

@@ -53,7 +53,7 @@ const EVENT_LABELS: Record<string, { label: string; emoji: string }> = {
   manual_update: { label: 'Atualização manual', emoji: '✏️' },
 };
 
-export function DeliveryTimeline({ delivery, orderId, orderNumber, customerPhone }: Props) {
+export function DeliveryTimeline({ delivery, orderId, customerPhone }: Props) {
   const [dispatching, setDispatching] = useState(false);
   const [motoboyName, setMotoboyName] = useState(delivery?.motoboyName || '');
   const [motoboyPhone, setMotoboyPhone] = useState(delivery?.motoboyPhone || '');
@@ -95,7 +95,7 @@ export function DeliveryTimeline({ delivery, orderId, orderNumber, customerPhone
       } else {
         toast(d2.error || 'Erro ao marcar como enviado', 'error');
       }
-    } catch (e) {
+    } catch {
       toast('Erro de conexão', 'error');
     }
     setDispatching(false);
@@ -184,7 +184,7 @@ export function DeliveryTimeline({ delivery, orderId, orderNumber, customerPhone
               {delivery.problemAt && (
                 <div className="text-orange-600">
                   ⚠️ Problema: {new Date(delivery.problemAt).toLocaleString('pt-BR')}
-                  {delivery.problemNote && <div className="ml-4">"{delivery.problemNote}"</div>}
+                  {delivery.problemNote && <div className="ml-4">&quot;{delivery.problemNote}&quot;</div>}
                 </div>
               )}
             </div>

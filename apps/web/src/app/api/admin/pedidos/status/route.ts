@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { getSession } from '@/lib/auth/session';
-import { sendWhatsApp } from '@/lib/whatsapp-client';
 import { notifyOrder } from '@/lib/notify';
 import { createOutForDelivery } from '@/lib/delivery';
 
@@ -29,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!order) return NextResponse.json({ ok: false, error: 'Pedido não encontrado' }, { status: 404 });
 
     // Atualizar
-    const updateData: any = { status };
+    const updateData: Record<string, unknown> = { status };
     if (status === 'SHIPPED') {
       updateData.shippedAt = new Date();
       if (tracking) updateData.tracking = tracking;
@@ -82,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, order: updated });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
 }

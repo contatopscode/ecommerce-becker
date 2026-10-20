@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     console.log(`[2fa] Desativado para user ${session.userId}`);
 
     return NextResponse.json({ ok: true, message: '2FA desativado' });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: (e instanceof Error ? e.message : String(e)) }, { status: 500 });
   }
 }

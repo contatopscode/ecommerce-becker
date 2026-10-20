@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
@@ -197,7 +197,7 @@ export function SearchBox() {
             onClick={handleSubmit}
             className="block w-full text-center text-sm font-semibold text-becker-purple hover:bg-becker-cream py-3 border-t border-becker-line"
           >
-            Ver todos os resultados para "{query}" →
+            Ver todos os resultados para &quot;{query}&quot; →
           </button>
         </div>
       )}
@@ -206,7 +206,7 @@ export function SearchBox() {
       {open && !loading && query.length >= 2 && results.total === 0 && (
         <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl border border-becker-line shadow-pop p-6 text-center z-50">
           <div className="text-3xl mb-2">🤷</div>
-          <p className="text-sm text-becker-slate">Nenhum produto encontrado para "{query}"</p>
+          <p className="text-sm text-becker-slate">Nenhum produto encontrado para &quot;{query}&quot;</p>
         </div>
       )}
     </div>

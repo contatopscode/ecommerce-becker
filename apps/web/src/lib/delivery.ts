@@ -122,9 +122,9 @@ export async function createOutForDelivery(
     }
 
     return { ok: true, deliveryId: delivery.id };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[delivery] createOutForDelivery error:', e);
-    return { ok: false, error: e.message || String(e) };
+    return { ok: false, error: (e instanceof Error ? e.message : String(e)) || String(e) };
   }
 }
 
@@ -261,9 +261,9 @@ export async function confirmDelivery(
     }
 
     return { ok: false, error: 'Ação inválida' };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[delivery] confirmDelivery error:', e);
-    return { ok: false, error: e.message || String(e) };
+    return { ok: false, error: (e instanceof Error ? e.message : String(e)) || String(e) };
   }
 }
 
@@ -329,14 +329,14 @@ export async function sendDeliveryReminders(): Promise<ReminderResult> {
         });
 
         result.sent++;
-      } catch (e: any) {
-        result.errors.push(`Delivery ${delivery.id}: ${e.message || String(e)}`);
+      } catch (e: unknown) {
+        result.errors.push(`Delivery ${delivery.id}: ${(e instanceof Error ? e.message : String(e)) || String(e)}`);
       }
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[delivery] sendDeliveryReminders error:', e);
     result.ok = false;
-    result.errors.push(e.message || String(e));
+    result.errors.push((e instanceof Error ? e.message : String(e)) || String(e));
   }
 
   return result;
