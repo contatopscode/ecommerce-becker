@@ -8,6 +8,8 @@ import 'server-only';
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { prisma } from '@becker/db';
 
+type PaymentStatusValue = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+
 // ============== CONFIGURAÇÃO ==============
 
 /**
@@ -211,7 +213,7 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
 export async function createPreference(input: {
   orderId: string;
   orderNumber: string;
-  items: Array<{ title: string; quantity: number; unit_price: number }>;
+  items: NonNullable<Parameters<Preference['create']>[0]['body']['items']>;
   total: number;
   customer: { name: string; email?: string };
 }): Promise<{ ok: boolean; preferenceId?: string; initPoint?: string; error?: string }> {
@@ -221,7 +223,7 @@ export async function createPreference(input: {
 
     const result = await preference.create({
       body: {
-        items: input.items as never,
+        items: input.items,
         external_reference: input.orderId,
         payer: {
           name: input.customer.name,
@@ -283,7 +285,7 @@ export async function testConnection(): Promise<{ ok: boolean; mode: string; err
  */
 export function mapMPStatusToOrderStatus(
   mpStatus: string
-): 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' {
+): PaymentStatusValue {
   switch (mpStatus) {
     case 'approved':
       return 'PAID';

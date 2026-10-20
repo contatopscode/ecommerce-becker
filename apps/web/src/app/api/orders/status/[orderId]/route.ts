@@ -34,22 +34,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ orde
     if (order.paymentId && order.status === 'PENDING' && order.paymentStatus === 'PENDING') {
       const mpStatus = await mercadopagoLib.getPaymentStatus(order.paymentId);
       if (mpStatus && mpStatus.status === 'approved') {
-        const newStatus = mercadopagoLib.mapMPStatusToOrderStatus(mpStatus.status);
+        // 'approved' mapeia sempre para PAID, válido em OrderStatus e PaymentStatus
+        const paidAt = new Date();
         await prisma.order.update({
           where: { id: order.id },
           data: {
-            status: newStatus as never,
-            paymentStatus: newStatus as never,
-            paidAt: new Date(),
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            paidAt,
           },
         });
         return NextResponse.json({
           ok: true,
           order: {
             ...order,
-            status: newStatus as never,
-            paymentStatus: newStatus as never,
-            paidAt: new Date().toISOString(),
+            status: 'PAID',
+            paymentStatus: 'PAID',
+            paidAt: paidAt.toISOString(),
           },
         });
       }
