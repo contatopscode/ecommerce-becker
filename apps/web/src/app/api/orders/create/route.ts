@@ -8,6 +8,7 @@ import { prisma, type Prisma } from '@becker/db';
 import { notifyOrder } from '@/lib/notify';
 import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
+import { verificarCupom, calcularDesconto } from '@/lib/cupom';
 import { markAsConverted } from '@/lib/cart-recovery';
 
 function genOrderNumber() {
@@ -132,21 +133,32 @@ export async function POST(req: NextRequest) {
     let discount = 0;
     let freeShipping = false;
     if (cupom) {
-      const c = await prisma.coupon.findUnique({ where: { code: cupom.toUpperCase() } });
-      if (c && c.active) {
-        if (c.type === 'percent') discount = subtotal * (c.discount / 100);
-        else if (c.type === 'fixed') discount = c.discount;
-        else if (c.type === 'shipping') freeShipping = true;
-        // Incrementar uso
-        await prisma.coupon.update({
-          where: { id: c.id },
-          data: { usedCount: { increment: 1 } },
-        });
+      const c = await prisma.coupon.findUnique({ where: { code: String(cupom).toUpperCase() } });
+      if (!c) {
+        return NextResponse.json({ ok: false, error: 'Cupom não encontrado' }, { status: 400 });
       }
+      const check = verificarCupom(c, subtotal);
+      if (!check.ok) {
+        return NextResponse.json({ ok: false, error: check.error }, { status: 400 });
+      }
+      // Incremento atômico e condicional: evita ultrapassar maxUses em pedidos simultâneos
+      const claimed = await prisma.coupon.updateMany({
+        where: {
+          id: c.id,
+          active: true,
+          ...(c.maxUses !== null ? { usedCount: { lt: c.maxUses } } : {}),
+        },
+        data: { usedCount: { increment: 1 } },
+      });
+      if (claimed.count === 0) {
+        return NextResponse.json({ ok: false, error: 'Cupom esgotado' }, { status: 400 });
+      }
+      discount = calcularDesconto(c, subtotal);
+      if (c.type === 'shipping') freeShipping = true;
     }
 
     const shippingPrice = freeShipping ? 0 : shipping?.price || 0;
-    const total = subtotal - discount + shippingPrice;
+    const total = Math.max(0, subtotal - discount + shippingPrice);
 
     // Buscar ou criar usuário
     const whatsappFormatted = `(${whatsapp.slice(0, 2)}) ${whatsapp.slice(2, 7)}-${whatsapp.slice(7)}`;
