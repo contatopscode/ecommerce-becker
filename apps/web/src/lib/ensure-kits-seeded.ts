@@ -1,6 +1,6 @@
 // ============================================================
 // Ensure kits seeded
-// Verifica se os 5 kits fixos existem. Se não, roda o seed.
+// Verifica se o kit fixo existem. Se não, roda o seed.
 // Idempotente: pode ser chamado várias vezes sem efeito colateral
 // ============================================================
 // Uso:
@@ -11,20 +11,14 @@
 import { prisma } from '@becker/db';
 import { seedKits } from './seed-kits';
 
-const KIT_SLUGS = [
-  'kit-limpeza-basica',
-  'kit-cozinha-pratica',
-  'kit-banheiro-brilhante',
-  'kit-lavanderia-completa',
-  'kit-casa-completa',
-];
+const KIT_SLUGS = ['kit-essencial-do-apartamento'];
 
 let isSeeding = false; // guard contra chamadas paralelas
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1h
 let cachedResult: { seeded: boolean; at: number } | null = null;
 
 /**
- * Garante que os 5 kits fixos existam.
+ * Garante que o kit fixo existam.
  * - Se já existem: noop
  * - Se faltam: roda seed
  * - Throttle: checa no máximo 1x por hora (cache em memória)

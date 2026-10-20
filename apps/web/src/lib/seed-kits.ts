@@ -1,9 +1,9 @@
 // ============================================================
-// Seed dos 5 Kits Becker (Sprint 11)
+// Seed do catálogo de kits Becker (hoje: só o Kit Essencial do Apartamento)
 // Idempotente: se o kit já existe (slug), não recria
 // Cria/atualiza: name, description, price, items, image
 // ============================================================
-// Os kits são fixos (não tem admin pra criar/remover) — preços
+// O preço do kit é fixo (KIT_PRICE). Os kits são fixos (não tem admin pra criar/remover) — preços
 // e produtos são ajustados aqui quando necessário.
 // ============================================================
 
@@ -30,97 +30,42 @@ interface KitSeed {
   order: number;
 }
 
+// Produtos componentes do kit: ficam INATIVOS (não aparecem na vitrine)
+interface ComponentSeed {
+  slug: string;
+  sku: string;
+  name: string;
+  label: string;
+}
+
+const COMPONENTS_CATEGORY = {
+  slug: 'componentes-de-kits',
+  name: 'Componentes de kits',
+};
+
+const COMPONENTS: ComponentSeed[] = [
+  { slug: 'desinfetante-lavanda-2l', sku: 'KIT-COMP-DES-LAV-2L', name: 'Desinfetante Lavanda 2 L', label: '2L Lavanda' },
+  { slug: 'multiuso-original-500ml', sku: 'KIT-COMP-MUL-ORI-500', name: 'Multiuso Original', label: '500ml Original' },
+  { slug: 'limpa-vidros-500ml', sku: 'KIT-COMP-VID-500', name: 'Limpa Vidros', label: '500ml' },
+  { slug: 'alcool-46-1l', sku: 'KIT-COMP-ALC-46-1L', name: 'Álcool 46°', label: '1L' },
+  { slug: 'flower-lavanda-500ml', sku: 'KIT-COMP-FLO-LAV-500', name: 'Flower Lavanda', label: '500ml' },
+];
+
+export const KIT_PRICE = 52.5;
+
 const KITS: KitSeed[] = [
   {
-    slug: 'kit-limpeza-basica',
-    name: 'Kit Limpeza Básica',
-    shortDescription: 'O essencial pra começar a semana',
+    slug: 'kit-essencial-do-apartamento',
+    name: 'Kit - Essencial do Apartamento',
+    shortDescription: 'Cinco produtos Becker para o apartamento',
     description:
-      'O kit perfeito pra quem quer manter a casa sempre limpa sem complicação. ' +
-      'Limpador Multiuso Becker 500ml (vai em qualquer superfície) + Desinfetante Becker 2L ' +
-      '(elimina 99,9% das bactérias). Inclui 2 produtos Becker com 10% de desconto no combo.',
-    category: 'limpeza',
-    image: '/images/kits/limpeza-basica.jpg',
-    discountPercent: 10,
-    items: [
-      { productSlug: 'limpador-multiuso-500ml', qty: 1 },
-      { productSlug: 'desinfetante-2l', qty: 1 },
-    ],
+      'Desinfetante Lavanda 2 L + Multiuso Original + Limpa Vidros + Álcool 46° + Flower Lavanda',
+    category: 'casa',
+    image: '/images/kits/essencial-do-apartamento.jpg',
+    discountPercent: 0,
+    items: COMPONENTS.map((c) => ({ productSlug: c.slug, qty: 1 })),
     isFeatured: true,
     order: 1,
-  },
-  {
-    slug: 'kit-cozinha-pratica',
-    name: 'Kit Cozinha Prática',
-    shortDescription: 'Louça brilhando e bancada limpa',
-    description:
-      'Tudo que você precisa pra deixar a cozinha impecável. ' +
-      'Lava Louças Becker 500ml (corta gordura sem esforço) + Limpador Multiuso Becker 500ml ' +
-      '(bancada, fogão, pia). Combo com 10% OFF.',
-    category: 'cozinha',
-    image: '/images/kits/cozinha-pratica.jpg',
-    discountPercent: 10,
-    items: [
-      { productSlug: 'lava-loucas-500ml', qty: 1 },
-      { productSlug: 'limpador-multiuso-500ml', qty: 1 },
-    ],
-    isFeatured: true,
-    order: 2,
-  },
-  {
-    slug: 'kit-banheiro-brilhante',
-    name: 'Kit Banheiro Brilhante',
-    shortDescription: 'Vidro espelho + piso cheiroso',
-    description:
-      'O combo completo pra um banheiro sempre pronto. ' +
-      'Star Glass 4 em 1 Becker 500ml (espelhos e vidros sem mancha) + Desinfetante Becker 2L ' +
-      '(piso, vaso, box). Combo com 10% OFF.',
-    category: 'banheiro',
-    image: '/images/kits/banheiro-brilhante.jpg',
-    discountPercent: 10,
-    items: [
-      { productSlug: 'star-glass-4em1-500ml', qty: 1 },
-      { productSlug: 'desinfetante-2l', qty: 1 },
-    ],
-    order: 3,
-  },
-  {
-    slug: 'kit-lavanderia-completa',
-    name: 'Kit Lavanderia Completa',
-    shortDescription: 'Roupa cheirosa e macia por semanas',
-    description:
-      'Lava Roupas Becker Versatil 1L (rende até 40 lavagens) + Amaciante Concentrado Becker 500ml ' +
-      '(perfume duradouro). Combo com 10% OFF — uma lavanderia completa em 2 produtos.',
-    category: 'lavanderia',
-    image: '/images/kits/lavanderia-completa.jpg',
-    discountPercent: 10,
-    items: [
-      { productSlug: 'lava-roupas-versatil-1l', qty: 1 },
-      { productSlug: 'amaciante-concentrado-500ml', qty: 1 },
-    ],
-    isFeatured: true,
-    order: 4,
-  },
-  {
-    slug: 'kit-casa-completa',
-    name: 'Kit Casa Completa',
-    shortDescription: 'Tudo que a casa precisa em um combo',
-    description:
-      'O kit mais completo da Becker. 5 produtos que cobrem cozinha, banheiro, lavanderia e ' +
-      'limpeza geral: Lava Louças 500ml, Limpador Multiuso 500ml, Lava Roupas Versatil 1L, ' +
-      'Amaciante Concentrado 500ml e Desinfetante 2L. Combo com 15% OFF — a melhor economia.',
-    category: 'casa',
-    image: '/images/kits/casa-completa.jpg',
-    discountPercent: 15,
-    items: [
-      { productSlug: 'lava-loucas-500ml', qty: 1 },
-      { productSlug: 'limpador-multiuso-500ml', qty: 1 },
-      { productSlug: 'lava-roupas-versatil-1l', qty: 1 },
-      { productSlug: 'amaciante-concentrado-500ml', qty: 1 },
-      { productSlug: 'desinfetante-2l', qty: 1 },
-    ],
-    isFeatured: true,
-    order: 5,
   },
 ];
 
@@ -133,6 +78,13 @@ export interface SeedKitsResult {
 
 export async function seedKits(): Promise<SeedKitsResult> {
   const result: SeedKitsResult = { created: [], updated: [], skipped: [], errors: [] };
+
+  try {
+    await ensureComponentProducts();
+  } catch (e: any) {
+    result.errors.push(`Componentes: ${e.message || String(e)}`);
+    return result;
+  }
 
   for (const seed of KITS) {
     try {
@@ -187,9 +139,9 @@ export async function seedKits(): Promise<SeedKitsResult> {
         continue;
       }
 
-      // 2. Calcular preço com desconto
-      const discountMultiplier = (100 - seed.discountPercent) / 100;
-      const finalPrice = Math.round(originalPrice * discountMultiplier * 100) / 100;
+      // 2. Preço fixo do kit; sem preço individual dos itens, "de" = "por"
+      const finalPrice = KIT_PRICE;
+      if (originalPrice < finalPrice) originalPrice = finalPrice;
 
       // 3. Upsert kit
       const existing = await prisma.kit.findUnique({ where: { slug: seed.slug } });
@@ -257,5 +209,47 @@ export async function seedKits(): Promise<SeedKitsResult> {
     }
   }
 
+  // Catálogo só de kits: desativa kits e produtos que não fazem parte do catálogo atual
+  try {
+    await prisma.kit.updateMany({
+      where: { slug: { notIn: KITS.map((k) => k.slug) }, isActive: true },
+      data: { isActive: false },
+    });
+    await prisma.product.updateMany({
+      where: { active: true },
+      data: { active: false },
+    });
+  } catch (e: any) {
+    result.errors.push(`Desativação do catálogo antigo: ${e.message || String(e)}`);
+  }
+
   return result;
+}
+
+// Cria (se faltar) os produtos componentes, inativos, com 1 versão cada
+async function ensureComponentProducts() {
+  const category = await prisma.category.upsert({
+    where: { slug: COMPONENTS_CATEGORY.slug },
+    update: {},
+    create: { ...COMPONENTS_CATEGORY, active: false },
+  });
+
+  for (const c of COMPONENTS) {
+    const existing = await prisma.product.findUnique({ where: { slug: c.slug } });
+    if (existing) continue;
+    await prisma.product.create({
+      data: {
+        slug: c.slug,
+        sku: c.sku,
+        name: c.name,
+        description: c.name,
+        categoryId: category.id,
+        active: false,
+        highlights: [],
+        versions: {
+          create: [{ label: c.label, price: 0, stock: 0, sku: `${c.sku}-V1` }],
+        },
+      },
+    });
+  }
 }

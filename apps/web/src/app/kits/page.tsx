@@ -1,5 +1,5 @@
 // ============================================================
-// Página /kits - Lista os 5 kits Becker
+// Página /kits - Lista os kits Becker
 // Server Component que chama Prisma direto (página estática-ish)
 // ============================================================
 
@@ -10,9 +10,9 @@ import { ensureKitsSeeded } from '@/lib/ensure-kits-seeded';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
-  title: 'Kits Becker - Combos com desconto | Becker',
+  title: 'Kits Becker | Becker',
   description:
-    'Kits prontos Becker com até 15% de desconto. Limpeza, Cozinha, Banheiro, Lavanderia e Casa Completa. 40 anos cuidando da sua casa.',
+    'Kit Essencial do Apartamento Becker: cinco produtos de limpeza por R$ 52,50. 40 anos cuidando da sua casa.',
 };
 
 export default async function KitsPage() {
@@ -39,9 +39,8 @@ export default async function KitsPage() {
             Kits Becker
           </h1>
           <p className="text-white/90 text-lg max-w-2xl mx-auto">
-            Selecionamos os produtos que combinam entre si e montamos kits com até
-            <strong className="text-eco-300"> 15% de desconto</strong>. É só escolher e
-            pronto: sua casa fica resolvida.
+            Selecionamos os produtos que combinam entre si e montamos kits prontos.
+            É só escolher e pronto: sua casa fica resolvida.
           </p>
         </div>
 

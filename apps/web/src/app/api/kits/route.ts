@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Garante que os 5 kits existam (idempotente)
+    // Garante que o kit exista (idempotente)
     await ensureKitsSeeded();
 
     const kits = await prisma.kit.findMany({
