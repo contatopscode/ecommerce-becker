@@ -103,6 +103,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 >
                   Limpar filtros
                 </Link>
+                <p className="text-becker-slate mt-4 text-sm">
+                  Conheça nossos <Link href="/kits" className="text-becker-purple font-semibold hover:underline">kits Becker</Link>.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
