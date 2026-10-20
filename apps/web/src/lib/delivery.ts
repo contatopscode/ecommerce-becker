@@ -5,7 +5,7 @@
 // ============================================================
 
 import { prisma } from '@becker/db';
-import { sendWhatsApp, type SendTextOptions } from './whatsapp-client';
+import { sendWhatsApp, normalizeWhatsAppNumber } from './whatsapp-client';
 import { whatsappTemplates } from './whatsapp-templates';
 import { notifyAdminDelivery } from './notify';
 
@@ -102,9 +102,9 @@ export async function createOutForDelivery(
 
       try {
         await sendWhatsApp({
-          phone: order.guestWhatsapp,
-          message,
-        } as unknown as SendTextOptions);
+          number: normalizeWhatsAppNumber(order.guestWhatsapp),
+          text: message,
+        });
       } catch (e) {
         console.error('[delivery] WhatsApp send error:', e);
       }
@@ -200,7 +200,7 @@ export async function confirmDelivery(
 
       if (delivery.order.guestWhatsapp) {
         try {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: thanksMsg } as unknown as SendTextOptions);
+          await sendWhatsApp({ number: normalizeWhatsAppNumber(delivery.order.guestWhatsapp), text: thanksMsg });
         } catch (e) {
           console.error('[delivery] Thanks WhatsApp error:', e);
         }
@@ -236,7 +236,7 @@ export async function confirmDelivery(
 
       if (delivery.order.guestWhatsapp) {
         try {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message: problemMsg } as unknown as SendTextOptions);
+          await sendWhatsApp({ number: normalizeWhatsAppNumber(delivery.order.guestWhatsapp), text: problemMsg });
         } catch (e) {
           console.error('[delivery] Problem WhatsApp error:', e);
         }
@@ -311,7 +311,7 @@ export async function sendDeliveryReminders(): Promise<ReminderResult> {
         });
 
         if (delivery.order.guestWhatsapp) {
-          await sendWhatsApp({ phone: delivery.order.guestWhatsapp, message } as unknown as SendTextOptions);
+          await sendWhatsApp({ number: normalizeWhatsAppNumber(delivery.order.guestWhatsapp), text: message });
         }
 
         await prisma.delivery.update({
