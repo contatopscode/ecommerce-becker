@@ -1,0 +1,18 @@
+name: fabrica-ci
+on:
+  push:
+    branches: [main, homologacao]
+  pull_request:
+jobs:
+  validar:
+    runs-on: [self-hosted, linux, fabrica]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: instalar
+        run: "pnpm install --frozen-lockfile && DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder pnpm db:generate"
+      - name: lint
+        run: "pnpm lint"
