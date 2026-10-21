@@ -1,6 +1,9 @@
 // Selftest sem dependências: node --experimental-strip-types pedido-access.selftest.ts
 import assert from 'node:assert/strict';
 import { canonicalPhone, phonesMatch, canViewOrder } from './pedido-access.ts';
+import { signPedidoCookie, verifyPedidoCookie, pedidoCookiePath } from './pedido-cookie.ts';
+import { isValidCnpj } from '../cnpj.ts';
+import { sanitizeUrlForAnalytics, isOrderPath } from '../analytics-url.ts';
 import { signPedidoToken as sp, verifyPedidoToken as vp } from './pedido-token.ts';
 
 const SECRET = 'teste-local-com-pelo-menos-32-caracteres-xx';
@@ -45,6 +48,39 @@ const cases: Array<[string, () => void]> = [
     assert.equal(verifyPedidoToken(`${body}.AAAA`), null);
   }],
 ];
+// Decisão do pedido: token verificado OU cookie verificado entram em canViewOrder como o id autorizado
+const cookieId = (v: string | null) => verifyPedidoCookie(SECRET, v);
+cases.push(
+  ['sem t e sem sessão: negado', () => assert.equal(canViewOrder(owned, null, verifyPedidoToken('')), false)],
+  ['t de outro pedido: negado', () => assert.equal(canViewOrder(owned, null, verifyPedidoToken(signPedidoToken('o1'))), false)],
+  ['t do pedido certo: permitido', () => assert.equal(canViewOrder(owned, null, verifyPedidoToken(signPedidoToken('o2'))), true)],
+  ['cookie do pedido certo: permitido', () => assert.equal(canViewOrder(owned, null, cookieId(signPedidoCookie(SECRET, 'o2'))), true)],
+  ['cookie de outro pedido: negado', () => assert.equal(canViewOrder(owned, null, cookieId(signPedidoCookie(SECRET, 'o1'))), false)],
+  ['cookie expirado: negado', () => assert.equal(cookieId(signPedidoCookie(SECRET, 'o2', -1)), null)],
+  ['cookie não vale como ?t= e ?t= não vale como cookie', () => {
+    assert.equal(verifyPedidoToken(signPedidoCookie(SECRET, 'o2')), null);
+    assert.equal(cookieId(signPedidoToken('o2')), null);
+  }],
+  ['cookie com segredo diferente: negado', () => assert.equal(verifyPedidoCookie('outro-segredo-com-mais-de-32-caracteres-x', signPedidoCookie(SECRET, 'o2')), null)],
+  ['cookie só vale no caminho do pedido', () => assert.equal(pedidoCookiePath('o2'), '/pedido/o2')],
+  ['CNPJ válido (com e sem máscara)', () => {
+    assert.ok(isValidCnpj('11.222.333/0001-81'));
+    assert.ok(isValidCnpj('11222333000181'));
+    assert.ok(isValidCnpj('00.000.000/0001-91'));
+  }],
+  ['CNPJ inválido', () => {
+    assert.ok(!isValidCnpj('11.222.333/0001-82'));
+    assert.ok(!isValidCnpj('11111111111111'));
+    assert.ok(!isValidCnpj('123'));
+    assert.ok(!isValidCnpj(''));
+  }],
+  ['analytics: sem t, sem orderId e sem id do pedido', () => {
+    assert.equal(sanitizeUrlForAnalytics('https://x.com/checkout/pagamento?orderId=abc&t=tok.sig&utm_source=g'), 'https://x.com/checkout/pagamento?utm_source=g');
+    assert.equal(sanitizeUrlForAnalytics('https://x.com/pedido/abc123?t=tok.sig&status=approved'), 'https://x.com/pedido/[id]?status=approved');
+    assert.equal(sanitizeUrlForAnalytics('https://x.com/produtos?x=1'), 'https://x.com/produtos?x=1');
+    assert.ok(isOrderPath('/pedido/abc') && isOrderPath('/checkout/pagamento') && !isOrderPath('/produtos'));
+  }],
+);
 let failed = 0;
 for (const [name, fn] of cases) {
   try { fn(); console.log(`ok   ${name}`); } catch (e) { failed++; console.log(`FAIL ${name}: ${(e as Error).message}`); }
