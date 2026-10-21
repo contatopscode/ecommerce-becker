@@ -8,13 +8,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
-import { isValidCronToken } from '@/lib/backup';
+import crypto from 'crypto';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { setSessionCookie } from '@/lib/auth/session';
 
 export async function POST(req: NextRequest) {
-  // Protegido por token de cron
-  const token = req.headers.get('x-cron-token');
-  if (!isValidCronToken(token)) {
+  // Rate limit por IP: 5 req / 15 min
+  const limited = checkRateLimit(req, { max: 5, windowMs: 15 * 60 * 1000 });
+  if (limited) return limited;
+
+  // Protegido por token de cron (comparação em tempo constante)
+  const expected = process.env.CRON_TOKEN;
+  const given = req.headers.get('x-cron-token');
+  const a = Buffer.from(given ?? '');
+  const b = Buffer.from(expected ?? '');
+  if (!expected || !given || a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
     return NextResponse.json({ ok: false, error: 'Token inválido' }, { status: 401 });
   }
 
@@ -33,26 +41,20 @@ export async function POST(req: NextRequest) {
     const fullPhone = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
 
     // Encontra usuário
-    let user = await prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: { whatsapp: { in: [fullPhone, whatsapp] } },
     });
 
+    // Nunca cria usuário: só entra quem já existe como admin
     if (!user) {
-      // Cria usuário (pra primeira vez)
-      user = await prisma.user.create({
-        data: {
-          whatsapp: fullPhone,
-          name: `Admin ${fullPhone.slice(-4)}`,
-          role: 'ADMIN', // emergency login só pra admin
-        },
-      });
+      return NextResponse.json({ ok: false, error: 'Usuário não encontrado' }, { status: 404 });
     }
 
     // Verifica se é admin
     if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({
         ok: false,
-        error: `Usuário ${fullPhone} tem role ${user.role}. Emergency login só funciona pra ADMIN/SUPER_ADMIN. Atualize o role via SQL ou DB.`,
+        error: 'Emergency login só funciona para ADMIN/SUPER_ADMIN.',
       }, { status: 403 });
     }
 
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest) {
       session: sessionData,
     });
   } catch (e: unknown) {
-    console.error('[emergency-login] Erro:', e);
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    console.error('[emergency-login] Erro:', e instanceof Error ? e.message : 'desconhecido');
+    return NextResponse.json({ ok: false, error: 'Erro interno' }, { status: 500 });
   }
 }
