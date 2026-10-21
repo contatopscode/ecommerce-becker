@@ -2,6 +2,8 @@
 // LGPD - Gerenciamento de consentimento de cookies
 // ============================================================
 
+import { isOrderPath, sanitizeUrlForAnalytics } from '@/lib/analytics-url';
+
 export type ConsentCategory = 'essential' | 'analytics' | 'marketing';
 
 export interface Consent {
@@ -122,11 +124,15 @@ export function loadScriptsForConsent(): void {
       (window as unknown as ConsentWindow).dataLayer!.push(args);
     }
     gtag('js', new Date());
-    gtag('config', process.env.NEXT_PUBLIC_GA4_ID);
+    // page_view manual com a URL sem 't' e sem id de pedido (o config sozinho enviaria location.href)
+    const gaId = process.env.NEXT_PUBLIC_GA4_ID;
+    gtag('config', gaId, { send_page_view: false });
+    gtag('event', 'page_view', { page_location: sanitizeUrlForAnalytics(window.location.href), page_referrer: '' });
   }
 
   // Facebook Pixel - Marketing
-  if (hasConsent('marketing') && process.env.NEXT_PUBLIC_FB_PIXEL_ID) {
+  // Não carrega nas páginas de pedido/pagamento: o Pixel lê a URL real da página e não permite trocá-la
+  if (hasConsent('marketing') && process.env.NEXT_PUBLIC_FB_PIXEL_ID && !isOrderPath(window.location.pathname)) {
     const w = window as unknown as ConsentWindow;
     const fbq: FbqFn = (...args: unknown[]) => {
       (fbq.q = fbq.q || []).push(args);
