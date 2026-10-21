@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
+import { isMercadoPagoUrl } from '@/lib/payments/preference-items';
 
 interface PaymentClientProps {
   orderId: string;
@@ -260,7 +261,7 @@ function CardPayment({ total, orderId, cardError }: { total: number; orderId: st
       });
       const data = await res.json();
       const initPoint: unknown = data.payment?.initPoint;
-      if (data.ok && typeof initPoint === 'string' && initPoint.startsWith('https://')) {
+      if (data.ok && isMercadoPagoUrl(initPoint)) {
         window.location.assign(initPoint);
         return;
       }

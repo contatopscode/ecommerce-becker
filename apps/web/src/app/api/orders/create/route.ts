@@ -342,7 +342,7 @@ export async function POST(req: NextRequest) {
       payment,
     });
   } catch (e: unknown) {
-    console.error('Order create error:', e);
-    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+    console.error('Order create error:', e instanceof Error ? e.message : 'erro desconhecido');
+    return NextResponse.json({ ok: false, error: 'Erro ao criar o pedido. Tente novamente.' }, { status: 500 });
   }
 }
