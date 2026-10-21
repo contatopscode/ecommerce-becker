@@ -23,6 +23,8 @@ interface NotifyOrderInput {
   event: NotificationEvent;
   trackingCode?: string;
   customMessage?: string;
+  /** Link de pagamento do cartão, quando a preferência do MP foi criada */
+  paymentLink?: string;
 }
 
 /**
@@ -33,7 +35,7 @@ interface NotifyOrderInput {
  * Best-effort: falhas não derrubam o fluxo principal
  */
 export async function notifyOrder(input: NotifyOrderInput) {
-  const { orderId, event, trackingCode, customMessage } = input;
+  const { orderId, event, trackingCode, customMessage, paymentLink } = input;
 
   try {
     const order = await prisma.order.findUnique({
@@ -71,6 +73,8 @@ export async function notifyOrder(input: NotifyOrderInput) {
       shipping: Number(order.shipping),
       total: Number(order.total),
       paymentMethod: (order.paymentMethod as 'pix' | 'credit_card') || 'pix',
+      paymentLink: paymentLink || `${(process.env.SITE_DOMAIN || 'https://becker.pscode.ia.br').replace(/\/$/, '')}/checkout/pagamento?orderId=${order.id}`,
+      paymentLinkReady: Boolean(paymentLink),
       tracking: trackingCode || order.tracking,
       trackingUrl: `https://becker.pscode.ia.br/pedido/${order.number}`,
       address: order.address

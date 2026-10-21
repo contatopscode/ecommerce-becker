@@ -20,6 +20,10 @@ interface OrderData {
   shipping: number;
   total: number;
   paymentMethod: 'pix' | 'credit_card';
+  /** Link para o cliente concluir o pagamento com cartão (Checkout Pro ou página de pagamento) */
+  paymentLink?: string;
+  /** true quando a preferência de pagamento foi criada no Mercado Pago */
+  paymentLinkReady?: boolean;
   tracking?: string | null;
   trackingUrl?: string;
   address?: {
@@ -43,7 +47,9 @@ export const whatsappTemplates = {
 
     const paymentInfo = o.paymentMethod === 'pix'
       ? '💰 *Pagamento via PIX*\nVocê receberá o QR Code em instantes. Aprovação é instantânea!'
-      : '💳 *Pagamento via Cartão*\nProcessaremos seu pagamento nos próximos minutos.';
+      : o.paymentLinkReady
+        ? `💳 *Pagamento via Cartão*\nFinalize o pagamento pelo link seguro do Mercado Pago:\n${o.paymentLink}`
+        : `💳 *Pagamento via Cartão*\nSeu pagamento ainda não foi concluído. Finalize pelo link:\n${o.paymentLink ?? 'nosso site'}`;
 
     return `🛒 *Pedido ${o.number}* — Becker
 
