@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
   const limited = checkRateLimit(req, LIMITS.SEARCH);
   if (limited) return limited;
 
-  const q = (req.nextUrl.searchParams.get('q') || '').trim();
-  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '8');
+  const q = (req.nextUrl.searchParams.get('q') || '').trim().slice(0, 100);
+  const limit = Math.min(Math.max(Number.parseInt(req.nextUrl.searchParams.get('limit') || '8', 10) || 8, 1), 20);
 
   if (q.length < 2) {
     return NextResponse.json({ ok: true, products: [], kits: [], categories: [], total: 0 });

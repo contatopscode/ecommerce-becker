@@ -23,8 +23,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   ordem?: string;
 }> }) {
   const params = await searchParams;
+  const q = (params.q ?? '').slice(0, 100);
   const {
-    q = '',
     categoria,
     eco, top, novo,
     precoMin, precoMax,
@@ -64,14 +64,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   // Kits são produtos: aparecem na busca (não têm flags eco/top/novo)
   const kitsAllowed = eco !== '1' && top !== '1' && novo !== '1';
-  let kits = kitsAllowed
+  const kits = kitsAllowed
     ? await fetchActiveKits({
         search: q || undefined,
         category: categoria && categoria !== 'todos' ? categoria : undefined,
+        minPrice: precoMin ? Number(precoMin) : undefined,
+        maxPrice: precoMax ? Number(precoMax) : undefined,
       })
     : [];
-  if (precoMin) kits = kits.filter((k) => k.price >= Number(precoMin));
-  if (precoMax) kits = kits.filter((k) => k.price <= Number(precoMax));
   const totalResults = filtered.length + kits.length;
 
   return (

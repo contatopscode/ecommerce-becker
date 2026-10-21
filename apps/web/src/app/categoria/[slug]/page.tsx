@@ -62,7 +62,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             {category?.description && (
               <p className="text-becker-slate mt-1">{category.description}</p>
             )}
-            <p className="text-becker-slate text-sm mt-1">{products.length + kits.length} {products.length + kits.length === 1 ? 'produto' : 'produtos'}</p>
+            <p className="text-becker-slate text-sm mt-1">{products.length} {products.length === 1 ? 'produto' : 'produtos'}</p>
           </div>
           <CategorySort currentSort={sort || 'recent'} />
         </div>

@@ -28,14 +28,20 @@ export interface FetchKitsOptions {
   /** Categoria do kit (campo `category` do Kit, ex.: "casa") */
   category?: string;
   take?: number;
+  /** Faixa de preço do kit */
+  minPrice?: number;
+  maxPrice?: number;
 }
+
+const DEFAULT_KITS_TAKE = 48;
 
 /** Garante caminho absoluto no site para a foto (evita URL relativa quebrada). */
 export function kitImageSrc(image: string | null | undefined): string | null {
   if (!image) return null;
   const trimmed = image.trim();
   if (!trimmed) return null;
-  if (/^(https?:)?\/\//.test(trimmed) || trimmed.startsWith('data:')) return trimmed;
+  if (trimmed.startsWith('//') || /^data:/i.test(trimmed)) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }
 
@@ -47,6 +53,10 @@ export async function fetchActiveKits(opts?: FetchKitsOptions): Promise<KitSumma
     price: { gt: 0 },
     items: { some: {} },
   };
+  const priceFilter: Prisma.DecimalFilter = { gt: 0 };
+  if (opts?.minPrice !== undefined && Number.isFinite(opts.minPrice)) priceFilter.gte = opts.minPrice;
+  if (opts?.maxPrice !== undefined && Number.isFinite(opts.maxPrice)) priceFilter.lte = opts.maxPrice;
+  where.price = priceFilter;
   if (opts?.category) {
     where.category = { equals: opts.category, mode: 'insensitive' };
   }
@@ -63,7 +73,7 @@ export async function fetchActiveKits(opts?: FetchKitsOptions): Promise<KitSumma
   const kits = await prisma.kit.findMany({
     where,
     orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-    take: opts?.take,
+    take: opts?.take ?? DEFAULT_KITS_TAKE,
     include: { _count: { select: { items: true } } },
   });
 

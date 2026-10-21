@@ -8,6 +8,7 @@ import { PageShell } from '@/components/PageShell';
 import { KitDetail } from './KitDetail';
 import { prisma } from '@becker/db';
 import { ensureKitsSeeded } from '@/lib/ensure-kits-seeded';
+import { kitImageSrc } from '@/lib/kits';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,7 +55,7 @@ export default async function KitDetailPage({ params }: { params: Promise<{ slug
           shortDescription: kit.shortDescription,
           description: kit.description,
           category: kit.category,
-          image: kit.image,
+          image: kitImageSrc(kit.image),
           price: Number(kit.price),
           originalPrice: Number(kit.originalPrice),
           discountPercent: kit.discountPercent,
