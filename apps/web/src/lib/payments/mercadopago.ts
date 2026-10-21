@@ -99,6 +99,7 @@ export interface PaymentStatus {
   statusDetail?: string;
   paidAt?: string;
   amount: number;
+  externalReference?: string;
 }
 
 // ============== PIX ==============
@@ -198,6 +199,7 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentStatus
       statusDetail: result.status_detail,
       paidAt: result.date_approved,
       amount: result.transaction_amount || 0,
+      externalReference: result.external_reference || undefined,
     };
   } catch (e: unknown) {
     console.error('[mercadopago] Erro ao consultar pagamento:', e);
@@ -215,6 +217,7 @@ export async function createPreference(input: {
   orderNumber: string;
   items: NonNullable<Parameters<Preference['create']>[0]['body']['items']>;
   total: number;
+  shippingCost?: number;
   customer: { name: string; email?: string };
 }): Promise<{ ok: boolean; preferenceId?: string; initPoint?: string; error?: string }> {
   try {
@@ -225,6 +228,9 @@ export async function createPreference(input: {
       body: {
         items: input.items,
         external_reference: input.orderId,
+        ...(input.shippingCost && input.shippingCost > 0
+          ? { shipments: { cost: input.shippingCost, mode: 'not_specified' } }
+          : {}),
         payer: {
           name: input.customer.name,
           email: input.customer.email || `cliente+${input.orderId.slice(0, 8)}@becker.com.br`,
