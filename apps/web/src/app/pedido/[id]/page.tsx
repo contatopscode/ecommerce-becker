@@ -7,29 +7,43 @@ import { prisma } from '@becker/db';
 import { TrackingTimeline } from './TrackingTimeline';
 import { kitImageSrc } from '@/lib/kits';
 import { PageShell } from '@/components/PageShell';
+import { notFound } from 'next/navigation';
+import { getSession } from '@/lib/auth/session';
+import { canViewOrder } from '@/lib/auth/pedido-access';
+import { orderIdFromToken } from '@/lib/auth/pedido-link';
 
 export const dynamic = 'force-dynamic';
 
-export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
+}) {
   const { id } = await params;
+  const { t } = await searchParams;
 
   // Aceita tanto ID quanto número
   const order = await prisma.order.findFirst({
     where: { OR: [{ id }, { number: id }] },
-    include: { items: true, address: true, user: true },
+    include: { items: true, address: true, user: { select: { whatsapp: true } } },
   });
 
-  if (!order) {
-    return (
-      <PageShell>
-        <div className="text-center py-20">
-          <div className="text-6xl mb-4">🔍</div>
-          <h1 className="text-2xl font-extrabold mb-2">Pedido não encontrado</h1>
-          <p className="text-becker-slate">Verifique o número e tente novamente.</p>
-        </div>
-      </PageShell>
-    );
-  }
+  // Mesma resposta (404) para pedido inexistente e para pedido sem autorização
+  if (!order) notFound();
+  const session = await getSession();
+  const allowed = canViewOrder(
+    {
+      id: order.id,
+      userId: order.userId,
+      guestWhatsapp: order.guestWhatsapp,
+      userWhatsapp: order.user?.whatsapp ?? null,
+    },
+    session ? { userId: session.userId, role: session.role, whatsapp: session.whatsapp } : null,
+    orderIdFromToken(t),
+  );
+  if (!allowed) notFound();
 
   // OrderItem não guarda foto: busca a imagem dos kits vendidos pelo kitId
   const kitIds = order.items.flatMap((i) => (i.kitId ? [i.kitId] : []));

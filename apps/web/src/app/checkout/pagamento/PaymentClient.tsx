@@ -13,6 +13,7 @@ interface PaymentClientProps {
   paymentMethod: string;
   paymentId?: string;
   cardError?: boolean;
+  viewToken: string;
 }
 
 /**
@@ -22,7 +23,7 @@ interface PaymentClientProps {
  * - Cartão: redireciona para Checkout Pro do MP
  * - Fallback: simulação (se MP não configurado)
  */
-export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError }: PaymentClientProps) {
+export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError, viewToken }: PaymentClientProps) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -47,7 +48,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
           setPaid(true);
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast('🎉 Pagamento confirmado!', 'success');
-          setTimeout(() => router.push(`/pedido/${orderId}`), 2000);
+          setTimeout(() => router.push(`/pedido/${orderId}?t=${encodeURIComponent(viewToken)}`), 2000);
         }
       } catch {
         // Silencia erros de polling
@@ -57,7 +58,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [orderId, paymentId, paymentMethod, router]);
+  }, [orderId, paymentId, paymentMethod, router, viewToken]);
 
   // Busca QR Code se for PIX
   useEffect(() => {
@@ -105,7 +106,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
       if (data.ok) {
         setPaid(true);
         toast('🎉 Pagamento confirmado!', 'success');
-        setTimeout(() => router.push(`/pedido/${orderId}`), 2000);
+        setTimeout(() => router.push(`/pedido/${orderId}?t=${encodeURIComponent(viewToken)}`), 2000);
       } else {
         toast(data.error || 'Erro', 'error');
       }
