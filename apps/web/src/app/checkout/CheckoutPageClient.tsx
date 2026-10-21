@@ -21,6 +21,7 @@ import {
   type CustomerHint,
 } from '@/lib/cookie-helpers';
 import { decideCheckoutStart, digitsToWhatsapp } from '@/lib/checkout-flow';
+import { isMercadoPagoUrl } from '@/lib/payments/preference-items';
 
 interface AddressData {
   cep: string;
@@ -437,7 +438,7 @@ export default function CheckoutPageContent() {
       if (data.ok) {
         cart.clear();
         const initPoint: unknown = data.payment?.initPoint;
-        if (typeof initPoint === 'string' && initPoint.startsWith('https://')) {
+        if (isMercadoPagoUrl(initPoint)) {
           toast('Pedido criado! Redirecionando para o pagamento seguro...', 'success');
           window.location.assign(initPoint);
           return;

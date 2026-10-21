@@ -223,6 +223,7 @@ export async function createPreference(input: {
   try {
     const { client, sandbox } = await getMPClient();
     const preference = new Preference(client);
+    const siteUrl = process.env.SITE_DOMAIN || process.env.NEXTAUTH_URL || 'https://becker.pscode.ia.br';
 
     const result = await preference.create({
       body: {
@@ -236,13 +237,13 @@ export async function createPreference(input: {
           email: input.customer.email || `cliente+${input.orderId.slice(0, 8)}@becker.com.br`,
         },
         back_urls: {
-          success: `${process.env.SITE_DOMAIN}/pedido/${input.orderId}?status=approved`,
-          failure: `${process.env.SITE_DOMAIN}/checkout/pagamento?orderId=${input.orderId}&status=failure`,
-          pending: `${process.env.SITE_DOMAIN}/checkout/pagamento?orderId=${input.orderId}&status=pending`,
+          success: `${siteUrl}/pedido/${input.orderId}?status=approved`,
+          failure: `${siteUrl}/checkout/pagamento?orderId=${input.orderId}&status=failure`,
+          pending: `${siteUrl}/checkout/pagamento?orderId=${input.orderId}&status=pending`,
         },
         auto_return: 'approved',
         notification_url: process.env.MERCADOPAGO_WEBHOOK_URL ||
-          `${process.env.SITE_DOMAIN || 'https://becker.pscode.ia.br'}/api/webhooks/mercadopago`,
+          `${siteUrl}/api/webhooks/mercadopago`,
       },
     });
 
