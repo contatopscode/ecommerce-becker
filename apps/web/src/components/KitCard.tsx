@@ -63,9 +63,8 @@ export function KitCard({ kit }: KitCardProps) {
       price: kit.price,
       originalPrice: kit.originalPrice,
       stock: 99, // kits não tem estoque limitado
-      // Campo extra pra identificar que é kit
       isKit: true,
-    } as unknown as Parameters<typeof cart.add>[0]);
+    });
     toast(`🎁 ${kit.name} adicionado!`, 'success');
   };
 

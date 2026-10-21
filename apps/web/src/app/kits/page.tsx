@@ -5,8 +5,7 @@
 
 import { PageShell } from '@/components/PageShell';
 import { KitCard } from '@/components/KitCard';
-import { prisma } from '@becker/db';
-import { ensureKitsSeeded } from '@/lib/ensure-kits-seeded';
+import { fetchActiveKits } from '@/lib/kits';
 
 export const dynamic = 'force-dynamic';
 export const metadata = {
@@ -16,16 +15,7 @@ export const metadata = {
 };
 
 export default async function KitsPage() {
-  // Garante que os kits existam (idempotente, throttled 1x/h)
-  await ensureKitsSeeded();
-
-  const kits = await prisma.kit.findMany({
-    where: { isActive: true },
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-    include: {
-      _count: { select: { items: true } },
-    },
-  });
+  const kits = await fetchActiveKits();
 
   return (
     <PageShell>
@@ -51,23 +41,7 @@ export default async function KitsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {kits.map((k) => (
-              <KitCard
-                key={k.id}
-                kit={{
-                  id: k.id,
-                  slug: k.slug,
-                  name: k.name,
-                  shortDescription: k.shortDescription,
-                  description: k.description,
-                  category: k.category,
-                  image: k.image,
-                  price: Number(k.price),
-                  originalPrice: Number(k.originalPrice),
-                  discountPercent: k.discountPercent,
-                  isFeatured: k.isFeatured,
-                  itemCount: k._count.items,
-                }}
-              />
+              <KitCard key={k.id} kit={k} />
             ))}
           </div>
         )}
