@@ -9,8 +9,8 @@ import { PageShell } from '@/components/PageShell';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CheckoutPaymentPage({ searchParams }: { searchParams: Promise<{ orderId?: string }> }) {
-  const { orderId } = await searchParams;
+export default async function CheckoutPaymentPage({ searchParams }: { searchParams: Promise<{ orderId?: string; erro?: string }> }) {
+  const { orderId, erro } = await searchParams;
 
   if (!orderId) {
     return (
@@ -54,6 +54,7 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           total={Number(order.total)}
           paymentMethod={order.paymentMethod || 'pix'}
           paymentId={order.paymentId || undefined}
+          cardError={erro === 'cartao'}
         />
       </div>
     </PageShell>
