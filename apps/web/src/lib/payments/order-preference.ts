@@ -6,6 +6,7 @@
 import 'server-only';
 import { prisma } from '@becker/db';
 import { mercadopagoLib } from './index';
+import { buildPreferenceItems, isMercadoPagoUrl } from './preference-items';
 
 export interface OrderCardPayment {
   initPoint?: string;
@@ -22,29 +23,34 @@ export async function createCardPaymentForOrder(orderId: string): Promise<OrderC
   });
   if (!order) return { error: 'Pedido não encontrado' };
 
-  const items = order.items.map((i) => ({
-    id: i.kitId ?? i.productId,
-    title: i.versionLabel ? `${i.productName} - ${i.versionLabel}` : i.productName,
-    quantity: i.qty,
-    unit_price: Number(i.price),
-    currency_id: 'BRL',
-  }));
-
-  const discount = Number(order.discount);
-  if (discount > 0) {
-    items.push({ id: 'desconto', title: 'Desconto', quantity: 1, unit_price: -discount, currency_id: 'BRL' });
+  const built = buildPreferenceItems({
+    number: order.number,
+    total: Number(order.total),
+    shipping: Number(order.shipping),
+    discount: Number(order.discount),
+    items: order.items.map((i) => ({
+      id: i.kitId ?? i.productId,
+      productName: i.productName,
+      versionLabel: i.versionLabel,
+      qty: i.qty,
+      price: Number(i.price),
+    })),
+  });
+  if (!built.ok) {
+    console.error('[mercadopago] Valores inconsistentes no pedido', order.number);
+    return { error: CARD_ERROR };
   }
 
   const result = await mercadopagoLib.createPreference({
     orderId: order.id,
     orderNumber: order.number,
-    items,
+    items: built.items,
     total: Number(order.total),
-    shippingCost: Number(order.shipping),
+    shippingCost: built.shippingCost,
     customer: { name: order.user?.name || 'Cliente', email: order.user?.email || undefined },
   });
 
-  if (!result.ok || !result.initPoint) {
+  if (!result.ok || !isMercadoPagoUrl(result.initPoint)) {
     console.error('[mercadopago] Falha ao criar preferência do pedido', order.number);
     return { error: CARD_ERROR };
   }
