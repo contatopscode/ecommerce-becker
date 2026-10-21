@@ -10,6 +10,7 @@ import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
 import { verificarCupom, calcularDesconto } from '@/lib/cupom';
 import { markAsConverted } from '@/lib/cart-recovery';
+import { createCardPaymentForOrder } from '@/lib/payments/order-preference';
 
 function genOrderNumber() {
   const now = new Date();
@@ -263,13 +264,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Enviar WhatsApp de confirmação (template padronizado)
-    try {
-      await notifyOrder({ orderId: order.id, event: 'order_created' });
-    } catch (e) {
-      console.error('Erro ao enviar WhatsApp:', e);
-    }
-
     // Marcar carrinho como convertido (Sprint 9)
     try {
       await markAsConverted(whatsappFormatted, order.id);
@@ -279,7 +273,7 @@ export async function POST(req: NextRequest) {
 
     // ============== MERCADO PAGO ==============
     // Se MP está configurado e o método é PIX, cria pagamento agora
-    let payment: { paymentId?: string; qrCode?: string; qrCodeBase64?: string; ticketUrl?: string; expirationDate?: string } = {};
+    let payment: { paymentId?: string; qrCode?: string; qrCodeBase64?: string; ticketUrl?: string; expirationDate?: string; initPoint?: string; error?: string } = {};
     const provider = await getActiveProvider();
 
     if (provider === 'mercadopago' && safePaymentMethod === 'pix') {
@@ -317,6 +311,28 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         console.error('[mercadopago] Exceção ao criar pagamento:', e);
       }
+    }
+
+    // Cartão: Checkout Pro do Mercado Pago (o cliente é redirecionado ao initPoint)
+    if (provider === 'mercadopago' && safePaymentMethod === 'credit_card') {
+      try {
+        const card = await createCardPaymentForOrder(order.id);
+        if (card.initPoint) {
+          payment = { initPoint: card.initPoint };
+        } else {
+          payment = { error: card.error || 'Não foi possível iniciar o pagamento com cartão agora.' };
+        }
+      } catch (e) {
+        console.error('[mercadopago] Exceção ao criar preferência:', e instanceof Error ? e.message : e);
+        payment = { error: 'Não foi possível iniciar o pagamento com cartão agora. Seu pedido foi registrado; tente de novo em instantes.' };
+      }
+    }
+
+    // Enviar WhatsApp de confirmação (depois de saber se há link de pagamento)
+    try {
+      await notifyOrder({ orderId: order.id, event: 'order_created', paymentLink: payment.initPoint });
+    } catch (e) {
+      console.error('Erro ao enviar WhatsApp:', e);
     }
 
     return NextResponse.json({
