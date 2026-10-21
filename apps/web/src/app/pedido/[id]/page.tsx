@@ -12,7 +12,7 @@ import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import { canViewOrder } from '@/lib/auth/pedido-access';
 import { orderIdFromCookie, orderIdFromToken } from '@/lib/auth/pedido-link';
-import { PEDIDO_COOKIE } from '@/lib/auth/pedido-cookie';
+import { PEDIDO_COOKIE, pedidoPagamentoCookieName } from '@/lib/auth/pedido-cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +39,10 @@ export default async function OrderPage({
   if (t && orderIdFromToken(t) === order.id) {
     redirect(`/api/pedido/acesso?ref=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`);
   }
-  const cookieOrderId = orderIdFromCookie((await cookies()).get(PEDIDO_COOKIE)?.value);
+  const jar = await cookies();
+  // Cookie de /pedido/<id> ou o de pagamento deste mesmo pedido (nome com o id): nunca vale para outro pedido
+  const pagamentoOrderId = orderIdFromCookie(jar.get(pedidoPagamentoCookieName(order.id))?.value);
+  const cookieOrderId = orderIdFromCookie(jar.get(PEDIDO_COOKIE)?.value) ?? (pagamentoOrderId === order.id ? pagamentoOrderId : null);
 
   const session = await getSession();
   const allowed = canViewOrder(

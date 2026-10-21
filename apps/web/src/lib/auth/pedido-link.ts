@@ -2,7 +2,7 @@
 
 import { getSecret } from '@/lib/auth/signed-cookie';
 import { signPedidoToken, verifyPedidoToken } from '@/lib/auth/pedido-token';
-import { signPedidoCookie, verifyPedidoCookie } from '@/lib/auth/pedido-cookie';
+import { signPedidoCookie, verifyPedidoCookie, pagamentoCookieAutoriza } from '@/lib/auth/pedido-cookie';
 
 export function pedidoToken(orderId: string): string {
   return signPedidoToken(getSecret(), orderId);
@@ -27,6 +27,11 @@ export function pedidoCookieValue(orderId: string): string {
 
 export function orderIdFromCookie(value: string | undefined | null): string | null {
   return verifyPedidoCookie(getSecret(), value);
+}
+
+/** Cookie de pagamento do pedido `orderId` é válido e é DESTE pedido. */
+export function pagamentoCookieValido(orderId: string, value: string | undefined | null): boolean {
+  return pagamentoCookieAutoriza(getSecret(), orderId, value);
 }
 
 /** Link da tela de pagamento com token (o id sozinho não dá acesso). */

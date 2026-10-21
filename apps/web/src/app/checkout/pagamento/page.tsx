@@ -4,7 +4,7 @@
 // ============================================================
 
 import { prisma } from '@becker/db';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { PaymentClient } from './PaymentClient';
 import { PageShell } from '@/components/PageShell';
 import { orderIdFromToken } from '@/lib/auth/pedido-link';
@@ -15,6 +15,12 @@ export const dynamic = 'force-dynamic';
 export default async function CheckoutPaymentPage({ searchParams }: { searchParams: Promise<{ orderId?: string; erro?: string; t?: string }> }) {
   const { orderId, erro, t } = await searchParams;
 
+  // Link com token válido: troca o ?t= por cookie de pagamento e vai para a URL sem t (destino fixo no servidor)
+  if (orderId && t && orderIdFromToken(t) === orderId) {
+    const e = erro === 'cartao' ? '&erro=cartao' : '';
+    redirect(`/api/pedido/acesso?ref=${encodeURIComponent(orderId)}&t=${encodeURIComponent(t)}&next=pagamento${e}`);
+  }
+
   // Mesma regra de /pedido/[id]: sessão dona/admin ou ?t= válido para este pedido. O id sozinho não basta,
   // e esta página nunca emite token. Inexistente e não autorizado dão a mesma resposta (404).
   if (!orderId || !(await canAccessOrderId(orderId, t))) notFound();
@@ -24,9 +30,6 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
     include: { items: true, address: true },
   });
   if (!order) notFound();
-
-  // Token só é repassado se veio na URL e é deste pedido; dono por sessão navega sem token
-  const viewToken = orderIdFromToken(t) === order.id ? (t ?? null) : null;
 
   return (
     <PageShell>
@@ -46,7 +49,7 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           paymentMethod={order.paymentMethod || 'pix'}
           paymentId={order.paymentId || undefined}
           cardError={erro === 'cartao'}
-          viewToken={viewToken}
+          viewToken={null}
           simulationEnabled={process.env.MERCADOPAGO_SANDBOX === 'true'}
         />
       </div>
