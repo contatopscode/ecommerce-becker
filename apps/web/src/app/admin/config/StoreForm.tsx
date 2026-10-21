@@ -11,6 +11,7 @@ export function StoreForm({ initial }: { initial: StoreSettings }) {
   const [form, setForm] = useState<StoreSettings>(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [frete, setFrete] = useState(String(initial.freteGratisAPartirDe));
   const [busy, setBusy] = useState(false);
 
   const set = <K extends keyof StoreSettings>(k: K, v: StoreSettings[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -25,11 +26,15 @@ export function StoreForm({ initial }: { initial: StoreSettings }) {
       const res = await fetch('/api/admin/config/store', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          freteGratisAPartirDe: frete.trim() === '' ? undefined : Number(frete),
+        }),
       });
       const data: { settings?: StoreSettings; error?: string; issues?: Issue[] } = await res.json();
       if (res.ok && data.settings) {
         setForm(data.settings);
+        setFrete(String(data.settings.freteGratisAPartirDe));
         setMsg('Salvo com sucesso.');
       } else {
         setIssues(data.issues ?? []);
@@ -56,14 +61,14 @@ export function StoreForm({ initial }: { initial: StoreSettings }) {
     }
   }
 
-  const field = (label: string, k: keyof StoreSettings, type = 'text') => (
+  const field = (label: string, k: Exclude<keyof StoreSettings, 'freteGratisAPartirDe'>, type = 'text') => (
     <label className="block">
       <span className="text-xs font-semibold text-becker-slate">{label}</span>
       <input
         type={type}
         className={inputCls}
-        value={String(form[k])}
-        onChange={(e) => set(k, (k === 'freteGratisAPartirDe' ? Number(e.target.value) : e.target.value) as StoreSettings[typeof k])}
+        value={form[k]}
+        onChange={(e) => set(k, e.target.value)}
       />
       {errOf(k) && <span className="text-xs text-red-600">{errOf(k)}</span>}
     </label>
@@ -108,7 +113,18 @@ export function StoreForm({ initial }: { initial: StoreSettings }) {
           className="h-10 w-12"
         />
       </div>
-      {field('Frete grátis a partir de (R$)', 'freteGratisAPartirDe', 'number')}
+      <label className="block">
+        <span className="text-xs font-semibold text-becker-slate">Frete grátis a partir de (R$)</span>
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          className={inputCls}
+          value={frete}
+          onChange={(e) => setFrete(e.target.value)}
+        />
+        {errOf('freteGratisAPartirDe') && <span className="text-xs text-red-600">{errOf('freteGratisAPartirDe')}</span>}
+      </label>
       {field('Texto legal curto', 'textoLegalCurto')}
       {field('Texto de privacidade curto', 'textoPrivacidade')}
 

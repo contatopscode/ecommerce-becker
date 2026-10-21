@@ -4,6 +4,7 @@
 
 import { prisma } from '@becker/db';
 import { z } from 'zod';
+import { UPLOAD_URL_RE } from '@/lib/uploads';
 
 const CATEGORY_STORE = 'store';
 const PREFIX_STORE = 'store.';
@@ -32,7 +33,7 @@ export const storeSettingsSchema = z.object({
     .trim()
     .max(300)
     .default('')
-    .refine((v) => v === '' || /^\/uploads\/[A-Za-z0-9._-]+$/.test(v) || /^https:\/\/\S+$/.test(v), 'URL de logo inválida'),
+    .refine((v) => v === '' || UPLOAD_URL_RE.test(v), 'URL de logo inválida'),
   corPrimaria: z
     .string()
     .trim()
