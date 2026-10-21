@@ -15,19 +15,31 @@ import { notifyOrder } from '@/lib/notify';
 
 const AMOUNT_TOLERANCE = 0.01;
 
+type SignatureResult = 'ok' | 'invalid' | 'unavailable';
+
+const MAX_AGE_MS = 5 * 60 * 1000;
+const MAX_FUTURE_MS = 60 * 1000;
+
 /**
  * Valida o x-signature do MP (manifest "id:<data.id>;request-id:<x-request-id>;ts:<ts>;").
- * Sem MERCADOPAGO_WEBHOOK_SECRET apenas avisa; com o segredo, falha fechada.
+ * Sem MERCADOPAGO_WEBHOOK_SECRET: em produção (não sandbox) falha fechada; em sandbox só avisa.
+ * Com o segredo: exige data.id da query == id do corpo e ts recente (anti-replay).
  */
-function verifySignature(req: NextRequest, dataId: string | null): boolean {
+function verifySignature(req: NextRequest, paymentId: string): SignatureResult {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (!secret) {
+    const sandbox = process.env.MERCADOPAGO_SANDBOX === 'true';
+    if (!sandbox && process.env.NODE_ENV === 'production') {
+      console.error('[mercadopago webhook] MERCADOPAGO_WEBHOOK_SECRET ausente em produção: notificação recusada');
+      return 'unavailable';
+    }
     console.warn('[mercadopago webhook] MERCADOPAGO_WEBHOOK_SECRET ausente: assinatura não validada');
-    return true;
+    return 'ok';
   }
+  const dataId = req.nextUrl.searchParams.get('data.id');
   const header = req.headers.get('x-signature');
   const requestId = req.headers.get('x-request-id') || '';
-  if (!header || !dataId) return false;
+  if (!header || !dataId || dataId.toLowerCase() !== paymentId.toLowerCase()) return 'invalid';
 
   const parts = Object.fromEntries(
     header.split(',').map((p) => {
@@ -37,13 +49,18 @@ function verifySignature(req: NextRequest, dataId: string | null): boolean {
   );
   const ts = parts.ts;
   const v1 = parts.v1;
-  if (!ts || !v1) return false;
+  if (!ts || !v1 || !/^\d+$/.test(ts)) return 'invalid';
 
   const manifest = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${ts};`;
   const expected = createHmac('sha256', secret).update(manifest).digest('hex');
   const a = Buffer.from(expected, 'utf8');
   const b = Buffer.from(v1, 'utf8');
-  return a.length === b.length && timingSafeEqual(a, b);
+  if (!(a.length === b.length && timingSafeEqual(a, b))) return 'invalid';
+
+  const tsMs = Number(ts) < 1e12 ? Number(ts) * 1000 : Number(ts);
+  const age = Date.now() - tsMs;
+  if (age > MAX_AGE_MS || age < -MAX_FUTURE_MS) return 'invalid';
+  return 'ok';
 }
 
 export async function POST(req: NextRequest) {
@@ -76,8 +93,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, message: 'No payment ID found' });
     }
 
-    const dataId = req.nextUrl.searchParams.get('data.id') || (b.data?.id ? String(b.data.id) : paymentId);
-    if (!verifySignature(req, dataId)) {
+    const signature = verifySignature(req, paymentId);
+    if (signature === 'unavailable') {
+      return NextResponse.json({ ok: false, error: 'Webhook not configured' }, { status: 503 });
+    }
+    if (signature === 'invalid') {
       console.warn('[mercadopago webhook] Assinatura inválida');
       return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 });
     }
