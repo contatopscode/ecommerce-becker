@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import { canonicalPhone, phonesMatch, phoneVariants } from '@/lib/auth/pedido-access';
-import { rateLimit } from '@/lib/rate-limit';
+import { clientIpFromHeaders, rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 import { generateOrderNumber, generateTrackingCode } from './utils';
 import { calculateShipping } from './shipping';
@@ -222,9 +222,7 @@ export async function createOrderAction(input: z.infer<typeof checkoutSchema>) {
 const NOT_FOUND = { ok: false as const, error: 'Pedido não encontrado' };
 
 async function requestIp(): Promise<string> {
-  const h = await headers();
-  const forwarded = h.get('x-forwarded-for');
-  return forwarded ? forwarded.split(',')[0].trim() : h.get('x-real-ip') || 'unknown';
+  return clientIpFromHeaders(await headers());
 }
 
 /** Consulta pública: exige número do pedido E o telefone do pedido. Resposta única para os dois erros. */
