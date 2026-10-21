@@ -27,6 +27,7 @@ export function EmpresasClient() {
           whatsapp: f.get('whatsapp'),
           email: f.get('email'),
           mensagem: f.get('mensagem'),
+          site: f.get('site'),
         }),
       });
       const data: { ok?: boolean; error?: string } = await res.json().catch(() => ({}));
@@ -83,6 +84,7 @@ export function EmpresasClient() {
               <input name="responsavel" type="text" required placeholder="Nome do responsável" className="border border-becker-line rounded-xl px-4 py-3" />
               <input name="whatsapp" type="text" required inputMode="tel" placeholder="WhatsApp" className="border border-becker-line rounded-xl px-4 py-3" />
               <input name="email" type="email" placeholder="E-mail" className="border border-becker-line rounded-xl px-4 py-3 sm:col-span-2" />
+              <input name="site" type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] h-0 w-0 opacity-0" />
               <textarea name="mensagem" placeholder="Quais produtos te interessam?" className="sm:col-span-2 border border-becker-line rounded-xl px-4 py-3" rows={3} />
               {status === 'error' && (
                 <p className="sm:col-span-2 text-sm text-red-600" role="alert">
