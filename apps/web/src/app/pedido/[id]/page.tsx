@@ -7,10 +7,12 @@ import { prisma } from '@becker/db';
 import { TrackingTimeline } from './TrackingTimeline';
 import { kitImageSrc } from '@/lib/kits';
 import { PageShell } from '@/components/PageShell';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import { canViewOrder } from '@/lib/auth/pedido-access';
-import { orderIdFromToken } from '@/lib/auth/pedido-link';
+import { orderIdFromCookie, orderIdFromToken } from '@/lib/auth/pedido-link';
+import { PEDIDO_COOKIE } from '@/lib/auth/pedido-cookie';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +34,13 @@ export default async function OrderPage({
 
   // Mesma resposta (404) para pedido inexistente e para pedido sem autorização
   if (!order) notFound();
+
+  // Link com token válido: troca o ?t= por cookie de curta duração e vai para a URL limpa
+  if (t && orderIdFromToken(t) === order.id) {
+    redirect(`/api/pedido/acesso?ref=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`);
+  }
+  const cookieOrderId = orderIdFromCookie((await cookies()).get(PEDIDO_COOKIE)?.value);
+
   const session = await getSession();
   const allowed = canViewOrder(
     {
@@ -41,7 +50,7 @@ export default async function OrderPage({
       userWhatsapp: order.user?.whatsapp ?? null,
     },
     session ? { userId: session.userId, role: session.role, whatsapp: session.whatsapp } : null,
-    orderIdFromToken(t),
+    cookieOrderId,
   );
   if (!allowed) notFound();
 
