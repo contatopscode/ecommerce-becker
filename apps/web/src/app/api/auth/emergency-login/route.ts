@@ -7,12 +7,9 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { prisma } from '@becker/db';
 import { isValidCronToken } from '@/lib/backup';
-
-const SESSION_COOKIE = 'becker_session';
-const SESSION_DURATION = 60 * 60 * 24 * 30; // 30 dias
+import { setSessionCookie } from '@/lib/auth/session';
 
 export async function POST(req: NextRequest) {
   // Protegido por token de cron
@@ -67,14 +64,7 @@ export async function POST(req: NextRequest) {
       name: user.name,
     };
 
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE, JSON.stringify(sessionData), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION,
-      path: '/',
-    });
+    await setSessionCookie(sessionData);
 
     console.log(`[emergency-login] Sessão criada para ${user.name} (${user.role})`);
 

@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@becker/db';
 import { sendWhatsApp } from '@/lib/whatsapp-client';
 import crypto from 'crypto';
+import { getSecret, signValue, verifyValue } from '@/lib/auth/signed-cookie';
 
 const SESSION_COOKIE = 'becker_session';
 const OTP_COOKIE = 'becker_otp';
@@ -30,7 +31,7 @@ function generateOTP(): string {
 }
 
 function hashOTP(otp: string, whatsapp: string): string {
-  return crypto.createHash('sha256').update(`${otp}:${whatsapp}:becker-secret-2026`).digest('hex');
+  return crypto.createHmac('sha256', getSecret()).update(`${otp}:${whatsapp}`).digest('hex');
 }
 
 /**
@@ -50,11 +51,7 @@ export async function requestOTP(whatsapp: string): Promise<{ ok: boolean; error
 
   // Salvar no cookie (temporário)
   const cookieStore = await cookies();
-  cookieStore.set(OTP_COOKIE, JSON.stringify({
-    whatsapp: fullPhone,
-    hash,
-    expires: Date.now() + OTP_DURATION * 1000,
-  }), {
+  cookieStore.set(OTP_COOKIE, signValue({ whatsapp: fullPhone, hash }, OTP_DURATION), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -94,16 +91,10 @@ export async function verifyOTP(whatsapp: string, code: string): Promise<{ ok: b
   const otpCookie = cookieStore.get(OTP_COOKIE);
   if (!otpCookie) return { ok: false, error: 'Código expirado. Solicite um novo.' };
 
-  let data: { whatsapp: string; hash: string; expires: number };
-  try {
-    data = JSON.parse(otpCookie.value);
-  } catch {
-    return { ok: false, error: 'Código inválido' };
-  }
-
-  if (Date.now() > data.expires) {
+  const data = verifyValue(otpCookie.value);
+  if (!data || typeof data.whatsapp !== 'string' || typeof data.hash !== 'string') {
     cookieStore.delete(OTP_COOKIE);
-    return { ok: false, error: 'Código expirado' };
+    return { ok: false, error: 'Código expirado ou inválido. Solicite um novo.' };
   }
 
   if (data.whatsapp !== fullPhone) {
@@ -137,15 +128,23 @@ export async function verifyOTP(whatsapp: string, code: string): Promise<{ ok: b
     name: user.name,
   };
 
-  cookieStore.set(SESSION_COOKIE, JSON.stringify(sessionData), {
+  await setSessionCookie(sessionData);
+
+  return { ok: true, session: sessionData };
+}
+
+/**
+ * Grava o cookie de sessão assinado (expira em SESSION_DURATION)
+ */
+export async function setSessionCookie(session: Session): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, signValue({ ...session }, SESSION_DURATION), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: SESSION_DURATION,
     path: '/',
   });
-
-  return { ok: true, session: sessionData };
 }
 
 /**
@@ -153,13 +152,18 @@ export async function verifyOTP(whatsapp: string, code: string): Promise<{ ok: b
  */
 export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies();
-  const cookie = cookieStore.get(SESSION_COOKIE);
-  if (!cookie) return null;
-  try {
-    return JSON.parse(cookie.value) as Session;
-  } catch {
+  const payload = verifyValue(cookieStore.get(SESSION_COOKIE)?.value);
+  if (!payload) return null;
+  const { userId, role, whatsapp, name } = payload;
+  if (
+    typeof userId !== 'string' ||
+    typeof role !== 'string' ||
+    typeof whatsapp !== 'string' ||
+    typeof name !== 'string'
+  ) {
     return null;
   }
+  return { userId, role, whatsapp, name };
 }
 
 /**
