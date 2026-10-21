@@ -8,7 +8,7 @@
 import { prisma } from '@becker/db';
 import { sendWhatsApp, normalizeWhatsAppNumber } from '@/lib/whatsapp-client';
 import { whatsappTemplates } from '@/lib/whatsapp-templates';
-import { pedidoLink } from '@/lib/auth/pedido-link';
+import { pagamentoLink, pedidoLink } from '@/lib/auth/pedido-link';
 import { notifyAdmin, adminTemplates } from '@/lib/whatsapp-admin';
 
 export type NotificationEvent =
@@ -74,7 +74,7 @@ export async function notifyOrder(input: NotifyOrderInput) {
       shipping: Number(order.shipping),
       total: Number(order.total),
       paymentMethod: (order.paymentMethod as 'pix' | 'credit_card') || 'pix',
-      paymentLink: paymentLink || `${(process.env.SITE_DOMAIN || 'https://becker.pscode.ia.br').replace(/\/$/, '')}/checkout/pagamento?orderId=${order.id}`,
+      paymentLink: paymentLink || pagamentoLink(order.id),
       paymentLinkReady: Boolean(paymentLink),
       tracking: trackingCode || order.tracking,
       trackingUrl: pedidoLink(order.id, order.number),

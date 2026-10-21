@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from '@/lib/cart';
 import { formatPrice } from '@/lib/utils';
 import { isMercadoPagoUrl } from '@/lib/payments/preference-items';
@@ -13,7 +12,8 @@ interface PaymentClientProps {
   paymentMethod: string;
   paymentId?: string;
   cardError?: boolean;
-  viewToken: string;
+  /** Token do link (null quando o acesso é por sessão). Só é usado para provar acesso ao próprio pedido. */
+  viewToken: string | null;
 }
 
 /**
@@ -23,8 +23,9 @@ interface PaymentClientProps {
  * - Cartão: redireciona para Checkout Pro do MP
  * - Fallback: simulação (se MP não configurado)
  */
+const withToken = (path: string, token: string | null) => (token ? `${path}${path.includes('?') ? '&' : '?'}t=${encodeURIComponent(token)}` : path);
+
 export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError, viewToken }: PaymentClientProps) {
-  const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [pixData] = useState<{
@@ -42,13 +43,13 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
     // Polling a cada 5s pra detectar pagamento
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/orders/status/${orderId}`);
+        const res = await fetch(withToken(`/api/orders/status/${orderId}`, viewToken));
         const data = await res.json();
-        if (data.ok && data.order.status === 'PAID') {
+        if (data.ok && data.paid === true) {
           setPaid(true);
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast('🎉 Pagamento confirmado!', 'success');
-          setTimeout(() => router.push(`/pedido/${orderId}?t=${encodeURIComponent(viewToken)}`), 2000);
+          setTimeout(() => window.location.assign(withToken(`/pedido/${orderId}`, viewToken)), 2000);
         }
       } catch {
         // Silencia erros de polling
@@ -58,7 +59,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [orderId, paymentId, paymentMethod, router, viewToken]);
+  }, [orderId, paymentId, paymentMethod, viewToken]);
 
   // Busca QR Code se for PIX
   useEffect(() => {
@@ -67,16 +68,16 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
     // O QR Code vem no response do create. Como passamos só o paymentId,
     // vamos pegar via API dedicada OU mostrar a info do MP no checkout.
     // Por enquanto, simulamos com um placeholder - em produção, viria do webhook ou seria salvo no DB
-    fetch(`/api/orders/status/${orderId}`)
+    fetch(withToken(`/api/orders/status/${orderId}`, viewToken))
       .then((r) => r.json())
       .then((data) => {
         // Vamos só checar se já tá pago
-        if (data.ok && data.order.status === 'PAID') {
+        if (data.ok && data.paid === true) {
           setPaid(true);
         }
       })
       .catch(() => {});
-  }, [orderId, paymentId, paymentMethod]);
+  }, [orderId, paymentId, paymentMethod, viewToken]);
 
   // Countdown
   useEffect(() => {
@@ -100,13 +101,13 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
       const res = await fetch('/api/orders/simulate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, method: paymentMethod }),
+        body: JSON.stringify({ orderId, method: paymentMethod, t: viewToken }),
       });
       const data = await res.json();
       if (data.ok) {
         setPaid(true);
         toast('🎉 Pagamento confirmado!', 'success');
-        setTimeout(() => router.push(`/pedido/${orderId}?t=${encodeURIComponent(viewToken)}`), 2000);
+        setTimeout(() => window.location.assign(withToken(`/pedido/${orderId}`, viewToken)), 2000);
       } else {
         toast(data.error || 'Erro', 'error');
       }
@@ -146,7 +147,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
 
         {paymentMethod === 'pix'
           ? <PixPayment total={total} orderNumber={orderNumber} paymentId={paymentId} pixData={pixData} onSimulate={simulatePayment} paying={paying} />
-          : <CardPayment total={total} orderId={orderId} cardError={cardError} />}
+          : <CardPayment total={total} orderId={orderId} viewToken={viewToken} cardError={cardError} />}
 
         {/* Info de pagamento via Mercado Pago */}
         <div className="mt-6 pt-4 border-t border-becker-line flex items-center gap-2 text-xs text-becker-slate">
@@ -245,7 +246,7 @@ function PixPayment({ total, paymentId, pixData, onSimulate, paying }: {
   );
 }
 
-function CardPayment({ total, orderId, cardError }: { total: number; orderId: string; cardError?: boolean }) {
+function CardPayment({ total, orderId, viewToken, cardError }: { total: number; orderId: string; viewToken: string | null; cardError?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     cardError ? 'Não foi possível iniciar o pagamento com cartão. Seu pedido foi registrado e nada foi cobrado.' : null,
@@ -258,7 +259,7 @@ function CardPayment({ total, orderId, cardError }: { total: number; orderId: st
       const res = await fetch('/api/orders/pay-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, t: viewToken }),
       });
       const data = await res.json();
       const initPoint: unknown = data.payment?.initPoint;

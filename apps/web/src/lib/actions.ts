@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getSession } from '@/lib/auth/session';
 import { canonicalPhone, phonesMatch, phoneVariants } from '@/lib/auth/pedido-access';
+import { pedidoToken } from '@/lib/auth/pedido-link';
 import { clientIpFromHeaders, rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 import { generateOrderNumber, generateTrackingCode } from './utils';
@@ -216,7 +217,8 @@ export async function createOrderAction(input: z.infer<typeof checkoutSchema>) {
   }
 
   revalidatePath('/admin');
-  return { success: true, orderId: order.number };
+  // viewToken: só aqui, na criação, o token chega a quem criou o pedido
+  return { success: true, orderId: order.number, viewToken: pedidoToken(order.id) };
 }
 
 const NOT_FOUND = { ok: false as const, error: 'Pedido não encontrado' };

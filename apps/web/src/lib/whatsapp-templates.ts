@@ -82,7 +82,7 @@ Já estamos separando seus produtos com carinho.
 Prazo de entrega: até 5 dias úteis
 
 Acompanhe em tempo real:
-${o.trackingUrl || `https://becker.pscode.ia.br/pedido/${o.number}`}
+${o.trackingUrl || `https://becker.pscode.ia.br/rastrear`}
 
 💜 Equipe Becker`;
   },
@@ -97,7 +97,7 @@ Status: *Em separação* 🛍️
 Prazo de entrega: até 5 dias úteis
 
 Acompanhe:
-${o.trackingUrl || `https://becker.pscode.ia.br/pedido/${o.number}`}
+${o.trackingUrl || `https://becker.pscode.ia.br/rastrear`}
 
 💜 Becker`;
   },
@@ -115,7 +115,7 @@ Status: *A caminho* 🚚
 Previsão: 2 a 5 dias úteis
 
 Acompanhe seu pedido:
-${o.trackingUrl || `https://becker.pscode.ia.br/pedido/${o.number}`}
+${o.trackingUrl || `https://becker.pscode.ia.br/rastrear`}
 
 💜 Becker`;
   },
