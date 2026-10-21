@@ -2,6 +2,8 @@
 // LGPD - Gerenciamento de consentimento de cookies
 // ============================================================
 
+import { isOrderPath, sanitizeUrlForAnalytics } from '@/lib/analytics-url';
+
 export type ConsentCategory = 'essential' | 'analytics' | 'marketing';
 
 export interface Consent {
@@ -115,18 +117,30 @@ interface ConsentWindow {
  */
 export function loadScriptsForConsent(): void {
   // GA4 - Analytics
-  if (hasConsent('analytics') && process.env.NEXT_PUBLIC_GA4_ID) {
+  // Não carrega nas páginas de pedido/pagamento (a URL real identifica o pedido); a entrada nelas é por navegação completa
+  if (hasConsent('analytics') && process.env.NEXT_PUBLIC_GA4_ID && !isOrderPath(window.location.pathname)) {
     loadScript(`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA4_ID}`);
     (window as unknown as ConsentWindow).dataLayer = (window as unknown as ConsentWindow).dataLayer || [];
     function gtag(...args: unknown[]) {
       (window as unknown as ConsentWindow).dataLayer!.push(args);
     }
     gtag('js', new Date());
-    gtag('config', process.env.NEXT_PUBLIC_GA4_ID);
+    // page_location/page_referrer fixados no config: os eventos automáticos (scroll, cliques, formulários,
+    // engajamento) usam esses valores em vez de location.href. page_view manual com a URL sanitizada.
+    const gaId = process.env.NEXT_PUBLIC_GA4_ID;
+    gtag('config', gaId, {
+      send_page_view: false,
+      page_location: sanitizeUrlForAnalytics(window.location.href),
+      page_referrer: '',
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false,
+    });
+    gtag('event', 'page_view', { page_location: sanitizeUrlForAnalytics(window.location.href), page_referrer: '' });
   }
 
   // Facebook Pixel - Marketing
-  if (hasConsent('marketing') && process.env.NEXT_PUBLIC_FB_PIXEL_ID) {
+  // Não carrega nas páginas de pedido/pagamento: o Pixel lê a URL real da página e não permite trocá-la
+  if (hasConsent('marketing') && process.env.NEXT_PUBLIC_FB_PIXEL_ID && !isOrderPath(window.location.pathname)) {
     const w = window as unknown as ConsentWindow;
     const fbq: FbqFn = (...args: unknown[]) => {
       (fbq.q = fbq.q || []).push(args);

@@ -7,29 +7,55 @@ import { prisma } from '@becker/db';
 import { TrackingTimeline } from './TrackingTimeline';
 import { kitImageSrc } from '@/lib/kits';
 import { PageShell } from '@/components/PageShell';
+import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
+import { canViewOrder } from '@/lib/auth/pedido-access';
+import { orderIdFromCookie, orderIdFromToken } from '@/lib/auth/pedido-link';
+import { PEDIDO_COOKIE, pedidoPagamentoCookieName } from '@/lib/auth/pedido-cookie';
 
 export const dynamic = 'force-dynamic';
 
-export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
+}) {
   const { id } = await params;
+  const { t } = await searchParams;
 
   // Aceita tanto ID quanto número
   const order = await prisma.order.findFirst({
     where: { OR: [{ id }, { number: id }] },
-    include: { items: true, address: true, user: true },
+    include: { items: true, address: true, user: { select: { whatsapp: true } } },
   });
 
-  if (!order) {
-    return (
-      <PageShell>
-        <div className="text-center py-20">
-          <div className="text-6xl mb-4">🔍</div>
-          <h1 className="text-2xl font-extrabold mb-2">Pedido não encontrado</h1>
-          <p className="text-becker-slate">Verifique o número e tente novamente.</p>
-        </div>
-      </PageShell>
-    );
+  // Mesma resposta (404) para pedido inexistente e para pedido sem autorização
+  if (!order) notFound();
+
+  // Link com token válido: troca o ?t= por cookie de curta duração e vai para a URL limpa
+  if (t && orderIdFromToken(t) === order.id) {
+    redirect(`/api/pedido/acesso?ref=${encodeURIComponent(id)}&t=${encodeURIComponent(t)}`);
   }
+  const jar = await cookies();
+  // Cookie de /pedido/<id> ou o de pagamento deste mesmo pedido (nome com o id): nunca vale para outro pedido
+  const pagamentoOrderId = orderIdFromCookie(jar.get(pedidoPagamentoCookieName(order.id))?.value);
+  const cookieOrderId = orderIdFromCookie(jar.get(PEDIDO_COOKIE)?.value) ?? (pagamentoOrderId === order.id ? pagamentoOrderId : null);
+
+  const session = await getSession();
+  const allowed = canViewOrder(
+    {
+      id: order.id,
+      userId: order.userId,
+      guestWhatsapp: order.guestWhatsapp,
+      userWhatsapp: order.user?.whatsapp ?? null,
+    },
+    session ? { userId: session.userId, role: session.role, whatsapp: session.whatsapp } : null,
+    cookieOrderId,
+  );
+  if (!allowed) notFound();
 
   // OrderItem não guarda foto: busca a imagem dos kits vendidos pelo kitId
   const kitIds = order.items.flatMap((i) => (i.kitId ? [i.kitId] : []));

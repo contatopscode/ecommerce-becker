@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { getOrderAction, getOrdersByWhatsappAction } from '@/lib/actions';
+import { getOrderAction, getMyOrdersAction } from '@/lib/actions';
 import { formatPrice, statusLabel, statusColor, statusStepIndex } from '@/lib/utils';
 
 interface TrackedOrder {
@@ -25,24 +25,39 @@ export function RastrearClient() {
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [orders, setOrders] = useState<TrackedOrder[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const searchByNumber = async () => {
-    if (!orderId.trim()) return;
+    setError('');
+    if (!orderId.trim() || phone.replace(/\D/g, '').length < 10) {
+      setError('Informe o número do pedido e o WhatsApp usado na compra.');
+      return;
+    }
     setLoading(true);
-    const result = await getOrderAction(orderId.trim().toUpperCase());
-    setOrder(result);
+    const result = await getOrderAction(orderId.trim().toUpperCase(), phone);
     setOrders([]);
     setLoading(false);
-    if (!result) alert('Pedido não encontrado');
+    if (result.ok) {
+      setOrder(result.order);
+    } else {
+      setOrder(null);
+      setError(result.error);
+    }
   };
 
-  const searchByPhone = async () => {
-    if (phone.replace(/\D/g, '').length < 10) return alert('WhatsApp inválido');
+  const searchMine = async () => {
+    setError('');
     setLoading(true);
-    const results = await getOrdersByWhatsappAction(phone);
-    setOrders(results);
-    setOrder(null);
+    const result = await getMyOrdersAction();
     setLoading(false);
+    setOrder(null);
+    if (!result.authenticated) {
+      setOrders([]);
+      setError('Entre na sua conta para ver todos os seus pedidos.');
+      return;
+    }
+    setOrders(result.orders);
+    if (result.orders.length === 0) setError('Você ainda não tem pedidos.');
   };
 
   return (
@@ -51,12 +66,19 @@ export function RastrearClient() {
         <p className="text-becker-slate mb-6">Acompanhe o status dos seus pedidos em tempo real.</p>
 
         <div className="bg-white rounded-3xl border border-becker-line p-6 mb-6">
-          <label className="text-sm font-semibold block mb-2">Buscar por número do pedido</label>
-          <div className="flex gap-2">
+          <label className="text-sm font-semibold block mb-2">Número do pedido e WhatsApp da compra</label>
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               value={orderId}
               onChange={(e) => setOrderId(e.target.value.toUpperCase())}
               placeholder="BKR-202608-XXXXXX"
+              className="flex-1 border border-becker-line rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-becker-purple"
+            />
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-9999"
+              inputMode="tel"
               className="flex-1 border border-becker-line rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-becker-purple"
             />
             <button
@@ -67,25 +89,10 @@ export function RastrearClient() {
               Buscar
             </button>
           </div>
-        </div>
-
-        <div className="bg-white rounded-3xl border border-becker-line p-6 mb-6">
-          <label className="text-sm font-semibold block mb-2">Ou buscar por WhatsApp</label>
-          <div className="flex gap-2">
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="(11) 99999-9999"
-              className="flex-1 border border-becker-line rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-becker-purple"
-            />
-            <button
-              onClick={searchByPhone}
-              disabled={loading}
-              className="bg-becker-purple text-white font-semibold px-5 py-2.5 rounded-full text-sm disabled:opacity-50"
-            >
-              Buscar
-            </button>
-          </div>
+          {error && <p className="text-sm text-red-600 mt-3" role="alert">{error}</p>}
+          <button onClick={searchMine} disabled={loading} className="text-sm text-becker-purple font-semibold mt-4 underline">
+            Já tenho conta: ver meus pedidos
+          </button>
         </div>
 
         {order && <OrderCard order={order} />}

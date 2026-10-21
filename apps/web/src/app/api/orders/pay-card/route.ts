@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { getClientIp, rateLimit } from '@/lib/rate-limit';
+import { canAccessOrderId } from '@/lib/auth/pedido-guard';
 import { createCardPaymentForOrder, type OrderCardPayment } from '@/lib/payments/order-preference';
 
 const IP_LIMIT = { max: 20, windowMs: 60 * 60 * 1000 };
@@ -21,9 +22,13 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(`pay-card:ip:${getClientIp(req)}`, IP_LIMIT).ok) return tooMany();
 
   try {
-    const { orderId } = await req.json();
+    const { orderId, t } = await req.json();
     if (typeof orderId !== 'string' || !orderId) {
       return NextResponse.json({ ok: false, error: 'Pedido inválido' }, { status: 400 });
+    }
+    // Só o portador de ?t= válido deste pedido ou a sessão dona/admin; senão responde como se não existisse
+    if (!(await canAccessOrderId(orderId, typeof t === 'string' ? t : null))) {
+      return NextResponse.json({ ok: false, error: 'Pedido não encontrado' }, { status: 404 });
     }
     if (!rateLimit(`pay-card:order:${orderId}`, ORDER_LIMIT).ok) return tooMany();
     const order = await prisma.order.findUnique({ where: { id: orderId } });

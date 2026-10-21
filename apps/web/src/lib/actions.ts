@@ -7,6 +7,11 @@
 
 import { prisma, Prisma } from '@becker/db';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { getSession } from '@/lib/auth/session';
+import { canonicalPhone, phonesMatch, phoneVariants } from '@/lib/auth/pedido-access';
+import { pedidoToken } from '@/lib/auth/pedido-link';
+import { clientIpFromHeaders, rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 import { generateOrderNumber, generateTrackingCode } from './utils';
 import { calculateShipping } from './shipping';
@@ -212,58 +217,86 @@ export async function createOrderAction(input: z.infer<typeof checkoutSchema>) {
   }
 
   revalidatePath('/admin');
-  return { success: true, orderId: order.number };
+  // viewToken: só aqui, na criação, o token chega a quem criou o pedido
+  return { success: true, orderId: order.number, viewToken: pedidoToken(order.id) };
 }
 
-export async function getOrderAction(orderId: string) {
+const NOT_FOUND = { ok: false as const, error: 'Pedido não encontrado' };
+
+async function requestIp(): Promise<string> {
+  return clientIpFromHeaders(await headers());
+}
+
+/** Consulta pública: exige número do pedido E o telefone do pedido. Resposta única para os dois erros. */
+export async function getOrderAction(orderNumber: string, phone: string) {
+  const number = (orderNumber || '').trim().toUpperCase().slice(0, 40);
+  const ip = await requestIp();
+  const byIp = rateLimit(`rastrear:ip:${ip}`, { max: 20, windowMs: 15 * 60 * 1000 });
+  const byOrder = rateLimit(`rastrear:pedido:${number}`, { max: 5, windowMs: 15 * 60 * 1000 });
+  if (!byIp.ok || !byOrder.ok) return { ok: false as const, error: 'Muitas tentativas. Tente novamente em alguns minutos.' };
+  if (!number || canonicalPhone(phone).length < 10) return NOT_FOUND;
+
   const order = await prisma.order.findUnique({
-    where: { number: orderId },
-    include: { items: true, address: true, user: true },
+    where: { number },
+    include: { items: true, user: { select: { whatsapp: true } } },
   });
-  if (!order) return null;
+  if (!order) return NOT_FOUND;
+  if (!phonesMatch(order.user?.whatsapp, phone) && !phonesMatch(order.guestWhatsapp, phone)) {
+    return NOT_FOUND;
+  }
   return {
-    id: order.id,
-    number: order.number,
-    date: order.createdAt.toISOString().slice(0, 10),
-    status: order.status,
-    paymentStatus: order.paymentStatus,
-    paymentMethod: order.paymentMethod,
-    total: Number(order.total),
-    subtotal: Number(order.subtotal),
-    shipping: Number(order.shipping),
-    discount: Number(order.discount),
-    tracking: order.tracking,
-    items: order.items.map((i) => ({
-      name: i.productName,
-      label: i.versionLabel,
-      qty: i.qty,
-      price: Number(i.price),
-      total: Number(i.total),
-    })),
+    ok: true as const,
+    order: {
+      id: order.id,
+      number: order.number,
+      date: order.createdAt.toISOString().slice(0, 10),
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      total: Number(order.total),
+      subtotal: Number(order.subtotal),
+      shipping: Number(order.shipping),
+      discount: Number(order.discount),
+      tracking: order.tracking,
+      items: order.items.map((i) => ({
+        name: i.productName,
+        label: i.versionLabel,
+        qty: i.qty,
+        price: Number(i.price),
+        total: Number(i.total),
+      })),
+    },
   };
 }
 
-export async function getOrdersByWhatsappAction(whatsapp: string) {
+/** Pedidos da própria sessão (sem sessão: lista vazia e authenticated=false). */
+export async function getMyOrdersAction() {
+  const session = await getSession();
+  if (!session) return { authenticated: false as const, orders: [] };
+  const variants = phoneVariants(session.whatsapp);
   const orders = await prisma.order.findMany({
     where: {
       OR: [
-        { user: { whatsapp } },
-        { guestWhatsapp: whatsapp },
+        { userId: session.userId },
+        ...(variants.length > 0 ? [{ userId: null, guestWhatsapp: { in: variants } }] : []),
       ],
     },
     orderBy: { createdAt: 'desc' },
     take: 10,
     include: { items: true },
   });
-  return orders.map((o) => ({
-    id: o.id,
-    number: o.number,
-    date: o.createdAt.toISOString().slice(0, 10),
-    status: o.status,
-    total: Number(o.total),
-    itemCount: o.items.length,
-    tracking: o.tracking,
-  }));
+  return {
+    authenticated: true as const,
+    orders: orders.map((o) => ({
+      id: o.id,
+      number: o.number,
+      date: o.createdAt.toISOString().slice(0, 10),
+      status: o.status,
+      total: Number(o.total),
+      itemCount: o.items.length,
+      tracking: o.tracking,
+    })),
+  };
 }
 
 // ============ CUPOM ============

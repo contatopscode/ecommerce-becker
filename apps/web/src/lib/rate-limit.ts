@@ -55,14 +55,24 @@ export function rateLimit(
 }
 
 /**
- * Pega IP do request
+ * IP do cliente a partir dos cabeçalhos.
+ *
+ * x-forwarded-for pode vir preenchido pelo próprio cliente: cada proxy ACRESCENTA o IP que
+ * viu ao FIM da lista. No Coolify/Traefik o último valor é o IP real da conexão, então só ele
+ * é confiável; o primeiro é controlado pelo cliente e não serve para limite. Sem
+ * x-forwarded-for, usa x-real-ip.
  */
+export function clientIpFromHeaders(h: Pick<Headers, 'get'>): string {
+  const forwarded = h.get('x-forwarded-for');
+  if (forwarded) {
+    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+  return h.get('x-real-ip')?.trim() || 'unknown';
+}
+
 export function getClientIp(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
-  const real = req.headers.get('x-real-ip');
-  if (real) return real;
-  return 'unknown';
+  return clientIpFromHeaders(req.headers);
 }
 
 // ============== LIMITES PRÉ-DEFINIDOS ==============

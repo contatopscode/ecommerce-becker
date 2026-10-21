@@ -1,25 +1,24 @@
 // ============================================================
-// API: Pedidos do usuário (por WhatsApp)
-// GET /api/conta/pedidos?whatsapp=...
+// API: Pedidos do usuário logado
+// GET /api/conta/pedidos  (exige sessão; usa o WhatsApp da sessão)
 // ============================================================
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
+import { getSession } from '@/lib/auth/session';
+import { phoneVariants } from '@/lib/auth/pedido-access';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
   try {
-    const { searchParams } = new URL(req.url);
-    const whatsapp = searchParams.get('whatsapp');
-    if (!whatsapp) return NextResponse.json({ orders: [] });
-
-    const cleaned = whatsapp.replace(/\D/g, '');
-    const fullPhone = cleaned.startsWith('55') ? cleaned : `55${cleaned}`;
-
+    const variants = phoneVariants(session.whatsapp);
     const orders = await prisma.order.findMany({
       where: {
         OR: [
-          { user: { whatsapp: fullPhone } },
-          { guestWhatsapp: fullPhone },
+          { userId: session.userId },
+          ...(variants.length > 0 ? [{ userId: null, guestWhatsapp: { in: variants } }] : []),
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
         tracking: o.tracking,
       })),
     });
-  } catch (e: unknown) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Erro ao buscar pedidos' }, { status: 500 });
   }
 }

@@ -4,38 +4,32 @@
 // ============================================================
 
 import { prisma } from '@becker/db';
+import { notFound, redirect } from 'next/navigation';
 import { PaymentClient } from './PaymentClient';
 import { PageShell } from '@/components/PageShell';
+import { orderIdFromToken } from '@/lib/auth/pedido-link';
+import { canAccessOrderId } from '@/lib/auth/pedido-guard';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CheckoutPaymentPage({ searchParams }: { searchParams: Promise<{ orderId?: string; erro?: string }> }) {
-  const { orderId, erro } = await searchParams;
+export default async function CheckoutPaymentPage({ searchParams }: { searchParams: Promise<{ orderId?: string; erro?: string; t?: string }> }) {
+  const { orderId, erro, t } = await searchParams;
 
-  if (!orderId) {
-    return (
-      <PageShell>
-        <div className="text-center py-20">
-          <h1 className="text-2xl font-extrabold">Pedido não encontrado</h1>
-        </div>
-      </PageShell>
-    );
+  // Link com token válido: troca o ?t= por cookie de pagamento e vai para a URL sem t (destino fixo no servidor)
+  if (orderId && t && orderIdFromToken(t) === orderId) {
+    const e = erro === 'cartao' ? '&erro=cartao' : '';
+    redirect(`/api/pedido/acesso?ref=${encodeURIComponent(orderId)}&t=${encodeURIComponent(t)}&next=pagamento${e}`);
   }
+
+  // Mesma regra de /pedido/[id]: sessão dona/admin ou ?t= válido para este pedido. O id sozinho não basta,
+  // e esta página nunca emite token. Inexistente e não autorizado dão a mesma resposta (404).
+  if (!orderId || !(await canAccessOrderId(orderId, t))) notFound();
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: { items: true, address: true },
   });
-
-  if (!order) {
-    return (
-      <PageShell>
-        <div className="text-center py-20">
-          <h1 className="text-2xl font-extrabold">Pedido não encontrado</h1>
-        </div>
-      </PageShell>
-    );
-  }
+  if (!order) notFound();
 
   return (
     <PageShell>
@@ -55,6 +49,8 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           paymentMethod={order.paymentMethod || 'pix'}
           paymentId={order.paymentId || undefined}
           cardError={erro === 'cartao'}
+          viewToken={null}
+          simulationEnabled={process.env.MERCADOPAGO_SANDBOX === 'true'}
         />
       </div>
     </PageShell>

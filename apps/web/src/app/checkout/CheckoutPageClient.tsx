@@ -60,6 +60,14 @@ const STEPS = [
   { id: 4, name: 'Pagamento' },
 ];
 
+/** Vai para o pagamento com o token do pedido recém-criado. Navegação completa (não SPA): a URL com ?t= não vira evento de histórico das ferramentas de análise. */
+function goToPayment(orderId: string, viewToken: unknown, cardError: boolean) {
+  const q = new URLSearchParams({ orderId });
+  if (typeof viewToken === 'string' && viewToken) q.set('t', viewToken);
+  if (cardError) q.set('erro', 'cartao');
+  window.location.assign(`/checkout/pagamento?${q.toString()}`);
+}
+
 function onlyDigits(s: string) { return (s || '').replace(/\D/g, ''); }
 function formatWhatsApp(v: string) {
   v = onlyDigits(v).slice(0, 11);
@@ -445,11 +453,11 @@ export default function CheckoutPageContent() {
         }
         if (data.payment?.error) {
           toast(String(data.payment.error), 'error');
-          router.push(`/checkout/pagamento?orderId=${data.orderId}&erro=cartao`);
+          goToPayment(data.orderId, data.viewToken, true);
           return;
         }
         toast('Pedido criado! Agora é só pagar 💜', 'success');
-        router.push(`/checkout/pagamento?orderId=${data.orderId}`);
+        goToPayment(data.orderId, data.viewToken, false);
       } else {
         toast(data.error || 'Erro ao criar pedido', 'error');
       }
@@ -881,7 +889,7 @@ export default function CheckoutPageContent() {
                                 `Oi! Acabei de fazer o pedido *${data.orderNumber}* no site Becker. Pode me ajudar a finalizar o pagamento?`
                               );
                               window.open(`https://wa.me/5581999022262?text=${msg}`, '_blank');
-                              router.push(`/checkout/pagamento?orderId=${data.orderId}${data.payment?.error ? '&erro=cartao' : ''}`);
+                              goToPayment(data.orderId, data.viewToken, Boolean(data.payment?.error));
                             } else {
                               toast(data.error || 'Erro', 'error');
                             }
