@@ -436,6 +436,17 @@ export default function CheckoutPageContent() {
 
       if (data.ok) {
         cart.clear();
+        const initPoint: unknown = data.payment?.initPoint;
+        if (typeof initPoint === 'string' && initPoint.startsWith('https://')) {
+          toast('Pedido criado! Redirecionando para o pagamento seguro...', 'success');
+          window.location.assign(initPoint);
+          return;
+        }
+        if (data.payment?.error) {
+          toast(String(data.payment.error), 'error');
+          router.push(`/checkout/pagamento?orderId=${data.orderId}&erro=cartao`);
+          return;
+        }
         toast('Pedido criado! Agora é só pagar 💜', 'success');
         router.push(`/checkout/pagamento?orderId=${data.orderId}`);
       } else {
@@ -869,7 +880,7 @@ export default function CheckoutPageContent() {
                                 `Oi! Acabei de fazer o pedido *${data.orderNumber}* no site Becker. Pode me ajudar a finalizar o pagamento?`
                               );
                               window.open(`https://wa.me/5581999022262?text=${msg}`, '_blank');
-                              router.push(`/checkout/pagamento?orderId=${data.orderId}`);
+                              router.push(`/checkout/pagamento?orderId=${data.orderId}${data.payment?.error ? '&erro=cartao' : ''}`);
                             } else {
                               toast(data.error || 'Erro', 'error');
                             }

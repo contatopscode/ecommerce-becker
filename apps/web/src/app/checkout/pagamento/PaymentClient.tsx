@@ -11,6 +11,7 @@ interface PaymentClientProps {
   total: number;
   paymentMethod: string;
   paymentId?: string;
+  cardError?: boolean;
 }
 
 /**
@@ -20,7 +21,7 @@ interface PaymentClientProps {
  * - Cartão: redireciona para Checkout Pro do MP
  * - Fallback: simulação (se MP não configurado)
  */
-export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId }: PaymentClientProps) {
+export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError }: PaymentClientProps) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -143,7 +144,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
 
         {paymentMethod === 'pix'
           ? <PixPayment total={total} orderNumber={orderNumber} paymentId={paymentId} pixData={pixData} onSimulate={simulatePayment} paying={paying} />
-          : <CardPayment total={total} />}
+          : <CardPayment total={total} orderId={orderId} cardError={cardError} />}
 
         {/* Info de pagamento via Mercado Pago */}
         <div className="mt-6 pt-4 border-t border-becker-line flex items-center gap-2 text-xs text-becker-slate">
@@ -242,7 +243,34 @@ function PixPayment({ total, paymentId, pixData, onSimulate, paying }: {
   );
 }
 
-function CardPayment({ total }: { total: number }) {
+function CardPayment({ total, orderId, cardError }: { total: number; orderId: string; cardError?: boolean }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(
+    cardError ? 'Não foi possível iniciar o pagamento com cartão. Seu pedido foi registrado e nada foi cobrado.' : null,
+  );
+
+  const startPayment = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/orders/pay-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await res.json();
+      const initPoint: unknown = data.payment?.initPoint;
+      if (data.ok && typeof initPoint === 'string' && initPoint.startsWith('https://')) {
+        window.location.assign(initPoint);
+        return;
+      }
+      setError(data.payment?.error || data.error || 'Não foi possível iniciar o pagamento com cartão. Tente de novo.');
+    } catch {
+      setError('Erro de conexão. Verifique sua internet e tente de novo.');
+    }
+    setLoading(false);
+  };
+
   return (
     <>
       <h3 className="font-extrabold text-center mb-4 flex items-center justify-center gap-2">
@@ -256,9 +284,18 @@ function CardPayment({ total }: { total: number }) {
         <p className="text-xs text-becker-slate text-center">
           Em até 3x sem juros de <strong>{formatPrice(total / 3)}</strong>
         </p>
-        <p className="text-xs text-becker-slate text-center mt-3">
-          Você será redirecionado para o checkout do Mercado Pago para finalizar.
-        </p>
+        {error && (
+          <p role="alert" className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 text-center">
+            {error}
+          </p>
+        )}
+        <button
+          onClick={startPayment}
+          disabled={loading}
+          className="w-full bg-becker-purple text-white font-bold py-3 rounded-xl disabled:opacity-50"
+        >
+          {loading ? 'Abrindo o Mercado Pago...' : error ? 'Tentar de novo' : 'Pagar com cartão'}
+        </button>
       </div>
     </>
   );
