@@ -230,7 +230,7 @@ function ContaLogadaContent({ session, onLogout }: { session: ContaSession; onLo
   const [loading, setLoading] = useState2(true);
 
   useEffect2(() => {
-    fetch(`/api/conta/pedidos?whatsapp=${encodeURIComponent(session.whatsapp)}`)
+    fetch('/api/conta/pedidos')
       .then((r) => r.json())
       .then((d) => {
         setOrders(d.orders || []);
