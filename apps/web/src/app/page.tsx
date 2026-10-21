@@ -9,33 +9,9 @@ import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
 import { KitCard } from '@/components/KitCard';
 import { fetchProducts, fetchCategories } from '@/lib/products';
-import { ensureKitsSeeded } from '@/lib/ensure-kits-seeded';
-import { prisma } from '@becker/db';
+import { fetchActiveKits } from '@/lib/kits';
 
 export const dynamic = 'force-dynamic'; // ISR: revalidar a cada 60s
-
-async function fetchActiveKits() {
-  await ensureKitsSeeded();
-  const kits = await prisma.kit.findMany({
-    where: { isActive: true },
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-    include: { _count: { select: { items: true } } },
-  });
-  return kits.map((k) => ({
-    id: k.id,
-    slug: k.slug,
-    name: k.name,
-    shortDescription: k.shortDescription,
-    description: k.description,
-    category: k.category,
-    image: k.image,
-    price: Number(k.price),
-    originalPrice: Number(k.originalPrice),
-    discountPercent: k.discountPercent,
-    isFeatured: k.isFeatured,
-    itemCount: k._count.items,
-  }));
-}
 
 export default async function HomePage() {
   const kits = await fetchActiveKits();
@@ -110,10 +86,10 @@ export default async function HomePage() {
 
           <div className="relative">
             <div className="grid grid-cols-2 gap-4">
-              {!heroProduct && heroKit && (
+              {heroKit && (
                 <Link
                   href={`/kits/${heroKit.slug}`}
-                  className="product-img rounded-3xl p-4 aspect-[3/4] col-span-2 flex flex-col justify-between shadow-pop ring-soft overflow-hidden"
+                  className="product-img rounded-3xl p-4 aspect-[4/3] col-span-2 flex flex-col justify-between shadow-pop ring-soft overflow-hidden"
                 >
                   <span className="inline-flex w-fit items-center gap-1 bg-becker-orange text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full z-10">
                     Kit
@@ -263,13 +239,16 @@ export default async function HomePage() {
               {topProducts.length > 0 ? 'Mais vendidos' : 'Em destaque'}
             </p>
             <h2 className="display text-3xl lg:text-4xl font-extrabold mt-1">
-              {topProducts.length > 0 ? 'Top da semana' : 'Kits Becker'}
+              {topProducts.length > 0 ? 'Kits e top da semana' : 'Kits Becker'}
             </h2>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {topProducts.length > 0
-            ? topProducts.map((p) => <ProductCard key={p.id} product={p} />)
+            ? [
+                ...kits.map((k) => <KitCard key={`kit-${k.id}`} kit={k} />),
+                ...topProducts.map((p) => <ProductCard key={p.id} product={p} />),
+              ]
             : kits.map((k) => <KitCard key={k.id} kit={k} />)}
         </div>
         <div className="text-center mt-10">

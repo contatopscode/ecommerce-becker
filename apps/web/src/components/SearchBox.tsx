@@ -14,6 +14,14 @@ interface SearchResult {
     image: string | null;
     price: number | null;
   }>;
+  kits: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    shortDescription: string | null;
+    image: string | null;
+    price: number;
+  }>;
   categories: Array<{
     id: string;
     slug: string;
@@ -27,7 +35,7 @@ interface SearchResult {
 export function SearchBox() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult>({ products: [], categories: [], total: 0 });
+  const [results, setResults] = useState<SearchResult>({ products: [], kits: [], categories: [], total: 0 });
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [highlight, setHighlight] = useState(-1);
@@ -48,7 +56,7 @@ export function SearchBox() {
   // Buscar com debounce
   useEffect(() => {
     if (query.length < 2) {
-      setResults({ products: [], categories: [], total: 0 });
+      setResults({ products: [], kits: [], categories: [], total: 0 });
       setOpen(false);
       return;
     }
@@ -59,7 +67,7 @@ export function SearchBox() {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=6`);
         const data = await res.json();
         if (data.ok) {
-          setResults(data);
+          setResults({ ...data, kits: data.kits ?? [] });
           setOpen(true);
           setHighlight(-1);
         }
@@ -149,6 +157,38 @@ export function SearchBox() {
                     {c.icon || '📂'}
                   </span>
                   <span className="font-semibold text-sm">{c.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Kits */}
+          {results.kits.length > 0 && (
+            <div className="p-2 border-b border-becker-line">
+              <div className="text-[10px] uppercase tracking-wider text-becker-slate font-semibold px-3 py-1">
+                Kits
+              </div>
+              {results.kits.map((k) => (
+                <Link
+                  key={k.id}
+                  href={`/kits/${k.slug}`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-becker-cream"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-becker-cream grid place-items-center overflow-hidden shrink-0">
+                    {k.image ? (
+                      <img src={k.image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg">🎁</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm line-clamp-1">{k.name}</div>
+                    {k.shortDescription && (
+                      <div className="text-[10px] text-becker-slate line-clamp-1">{k.shortDescription}</div>
+                    )}
+                  </div>
+                  <div className="text-sm font-bold text-becker-purple shrink-0">{formatPrice(k.price)}</div>
                 </Link>
               ))}
             </div>

@@ -10,6 +10,8 @@ import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
 import { fetchProducts, fetchCategories, fetchCategoryBySlug } from '@/lib/products';
+import { KitCard } from '@/components/KitCard';
+import { fetchActiveKits } from '@/lib/kits';
 import { CategorySort } from './CategorySort';
 
 export const dynamic = 'force-dynamic';
@@ -34,6 +36,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   if (slug !== 'todos' && !category) notFound();
 
+  // Kits da categoria (campo `category` do kit); sem mapeamento, mostra os kits ativos
+  const allKits = await fetchActiveKits();
+  const matched = slug === 'todos' ? allKits : allKits.filter((k) => k.category?.toLowerCase() === slug.toLowerCase());
+  const kits = matched.length > 0 ? matched : allKits;
+
   return (
     <>
       <SiteHeader />
@@ -55,7 +62,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             {category?.description && (
               <p className="text-becker-slate mt-1">{category.description}</p>
             )}
-            <p className="text-becker-slate text-sm mt-1">{products.length} {products.length === 1 ? 'produto' : 'produtos'}</p>
+            <p className="text-becker-slate text-sm mt-1">{products.length + kits.length} {products.length + kits.length === 1 ? 'produto' : 'produtos'}</p>
           </div>
           <CategorySort currentSort={sort || 'recent'} />
         </div>
@@ -74,7 +81,16 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           </div>
         )}
 
-        {products.length === 0 ? (
+        {kits.length > 0 && (
+          <section className="mb-10">
+            <h2 className="display text-2xl font-extrabold mb-4">Kits 🎁</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {kits.map((k) => <KitCard key={k.id} kit={k} />)}
+            </div>
+          </section>
+        )}
+
+        {products.length === 0 && kits.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="display text-xl font-bold mb-2">Nenhum produto encontrado</h3>
@@ -86,7 +102,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               Conheça nossos <Link href="/kits" className="text-becker-purple font-semibold hover:underline">kits Becker</Link>.
             </p>
           </div>
-        ) : (
+        ) : products.length === 0 ? null : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
             {products.map((p) => <ProductCard key={p.id} product={p as unknown as ComponentProps<typeof ProductCard>['product']} />)}
           </div>
