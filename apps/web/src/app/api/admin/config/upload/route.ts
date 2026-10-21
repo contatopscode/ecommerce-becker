@@ -3,23 +3,36 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { guardAdmin } from '@/lib/auth/admin-guard';
-import { MAX_UPLOAD_BYTES, detectImage, getUploadDir } from '@/lib/uploads';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_DIR_BYTES, detectImage, getUploadDir, readBodyLimited, uploadDirSize } from '@/lib/uploads';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
-  const guard = await guardAdmin();
+  const guard = await guardAdmin(request);
   if (!guard.ok) return guard.response;
 
-  const declared = Number(request.headers.get('content-length') ?? '0');
-  if (declared > MAX_UPLOAD_BYTES + 64 * 1024) {
+  const limit = MAX_UPLOAD_BYTES + 64 * 1024;
+  const lengthHeader = request.headers.get('content-length');
+  if (lengthHeader === null || !/^\d+$/.test(lengthHeader)) {
+    return NextResponse.json({ error: 'Content-Length obrigatório' }, { status: 411 });
+  }
+  if (Number(lengthHeader) > limit) {
+    return NextResponse.json({ error: 'Arquivo maior que 5 MB' }, { status: 413 });
+  }
+  const contentType = request.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
+    return NextResponse.json({ error: 'Envie multipart/form-data' }, { status: 400 });
+  }
+
+  const raw = await readBodyLimited(request, limit);
+  if (raw === null) {
     return NextResponse.json({ error: 'Arquivo maior que 5 MB' }, { status: 413 });
   }
 
   let form: FormData;
   try {
-    form = await request.formData();
+    form = await new Response(raw, { headers: { 'content-type': contentType } }).formData();
   } catch {
     return NextResponse.json({ error: 'Envie multipart/form-data' }, { status: 400 });
   }
@@ -36,13 +49,20 @@ export async function POST(request: Request) {
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length > MAX_UPLOAD_BYTES) {
+    return NextResponse.json({ error: 'Arquivo maior que 5 MB' }, { status: 413 });
+  }
   const kind = detectImage(bytes);
   if (!kind) {
     return NextResponse.json({ error: 'Formato não permitido (use JPEG, PNG ou WebP)' }, { status: 415 });
   }
 
-  const name = `${randomBytes(16).toString('hex')}.${kind.ext}`;
   const dir = getUploadDir();
+  if ((await uploadDirSize(dir)) + bytes.length > MAX_UPLOAD_DIR_BYTES) {
+    return NextResponse.json({ error: 'Limite de armazenamento de uploads atingido' }, { status: 507 });
+  }
+
+  const name = `${randomBytes(16).toString('hex')}.${kind.ext}`;
   await mkdir(dir, { recursive: true });
   await writeFile(path.join(dir, name), bytes, { flag: 'wx' });
 
