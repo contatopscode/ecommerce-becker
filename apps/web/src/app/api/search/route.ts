@@ -10,7 +10,7 @@ import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
   // Rate limit: 60 req / min por IP
-  const limited = checkRateLimit(req, LIMITS.SEARCH);
+  const limited = checkRateLimit(req, LIMITS.SEARCH, 'search');
   if (limited) return limited;
 
   const q = (req.nextUrl.searchParams.get('q') || '').trim().slice(0, 100);

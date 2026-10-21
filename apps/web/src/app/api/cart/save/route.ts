@@ -10,7 +10,7 @@ import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
   // Rate limit: 30 req / min (carrinho atualiza frequente)
-  const limited = checkRateLimit(req, LIMITS.CART_SAVE);
+  const limited = checkRateLimit(req, LIMITS.CART_SAVE, 'cart-save');
   if (limited) return limited;
 
   try {

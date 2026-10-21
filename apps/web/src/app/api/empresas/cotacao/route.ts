@@ -32,7 +32,7 @@ function oneLine(v: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const limited = checkRateLimit(req, LIMIT);
+  const limited = checkRateLimit(req, LIMIT, 'empresas-cotacao');
   if (limited) return limited;
 
   let body: unknown;

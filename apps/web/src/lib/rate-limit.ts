@@ -5,71 +5,9 @@
 
 import 'server-only';
 
-interface RateLimitConfig {
-  max: number;
-  windowMs: number;
-}
+import { clientIpFromHeaders, rateLimit, rateLimitKey, type RateLimitConfig } from './rate-limit-core';
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-const store = new Map<string, RateLimitEntry>();
-
-// Limpeza periódica (a cada 5 minutos)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store.entries()) {
-    if (entry.resetAt < now) {
-      store.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
-
-/**
- * Verifica e registra uma request
- * Retorna: { ok, remaining, resetAt }
- */
-export function rateLimit(
-  identifier: string,
-  config: RateLimitConfig
-): { ok: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const entry = store.get(identifier);
-
-  if (!entry || entry.resetAt < now) {
-    // Primeira request ou janela expirada
-    store.set(identifier, {
-      count: 1,
-      resetAt: now + config.windowMs,
-    });
-    return { ok: true, remaining: config.max - 1, resetAt: now + config.windowMs };
-  }
-
-  entry.count++;
-  const ok = entry.count <= config.max;
-  const remaining = Math.max(0, config.max - entry.count);
-
-  return { ok, remaining, resetAt: entry.resetAt };
-}
-
-/**
- * IP do cliente a partir dos cabeçalhos.
- *
- * x-forwarded-for pode vir preenchido pelo próprio cliente: cada proxy ACRESCENTA o IP que
- * viu ao FIM da lista. No Coolify/Traefik o último valor é o IP real da conexão, então só ele
- * é confiável; o primeiro é controlado pelo cliente e não serve para limite. Sem
- * x-forwarded-for, usa x-real-ip.
- */
-export function clientIpFromHeaders(h: Pick<Headers, 'get'>): string {
-  const forwarded = h.get('x-forwarded-for');
-  if (forwarded) {
-    const parts = forwarded.split(',').map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0) return parts[parts.length - 1];
-  }
-  return h.get('x-real-ip')?.trim() || 'unknown';
-}
+export { clientIpFromHeaders, rateLimit };
 
 export function getClientIp(req: Request): string {
   return clientIpFromHeaders(req.headers);
@@ -99,10 +37,11 @@ import { NextResponse } from 'next/server';
 
 export function checkRateLimit(
   req: Request,
-  limit: RateLimitConfig
+  limit: RateLimitConfig,
+  name: string
 ): NextResponse | null {
   const ip = getClientIp(req);
-  const result = rateLimit(ip, limit);
+  const result = rateLimit(rateLimitKey(name, ip), limit);
 
   if (!result.ok) {
     return NextResponse.json(

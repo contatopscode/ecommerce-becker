@@ -8,7 +8,7 @@ import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 import { verifyOTP } from '@/lib/auth/session';
 
 export async function POST(req: NextRequest) {
-  const limited = checkRateLimit(req, LIMITS.OTP_VERIFY);
+  const limited = checkRateLimit(req, LIMITS.OTP_VERIFY, 'otp-verify');
   if (limited) return limited;
 
   try {

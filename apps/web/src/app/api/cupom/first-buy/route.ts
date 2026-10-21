@@ -9,7 +9,7 @@ import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
   // Rate limit: 30 req / min
-  const limited = checkRateLimit(req, LIMITS.CART_SAVE);
+  const limited = checkRateLimit(req, LIMITS.CART_SAVE, 'cupom-first-buy');
   if (limited) return limited;
 
   try {

@@ -14,7 +14,7 @@ import { setSessionCookie } from '@/lib/auth/session';
 
 export async function POST(req: NextRequest) {
   // Rate limit por IP: 5 req / 15 min
-  const limited = checkRateLimit(req, { max: 5, windowMs: 15 * 60 * 1000 });
+  const limited = checkRateLimit(req, { max: 5, windowMs: 15 * 60 * 1000 }, 'emergency-login');
   if (limited) return limited;
 
   // Protegido por token de cron (comparação em tempo constante)
