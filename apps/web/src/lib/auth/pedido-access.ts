@@ -36,3 +36,11 @@ export function canViewOrder(order: OrderOwnership, viewer: Viewer | null, token
   if (order.userId === null && phonesMatch(order.guestWhatsapp, viewer.whatsapp)) return true;
   return false;
 }
+
+/** Formas armazenáveis do mesmo número (com/sem 55, com/sem o 9 extra), para consulta exata no banco. */
+export function phoneVariants(raw: string | null | undefined): string[] {
+  const c = canonicalPhone(raw);
+  if (c.length !== 10) return [];
+  const withNine = `${c.slice(0, 2)}9${c.slice(2)}`;
+  return [c, withNine, `55${c}`, `55${withNine}`];
+}

@@ -6,6 +6,7 @@
 import { prisma } from '@becker/db';
 import { PaymentClient } from './PaymentClient';
 import { PageShell } from '@/components/PageShell';
+import { pedidoToken } from '@/lib/auth/pedido-link';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +56,7 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           paymentMethod={order.paymentMethod || 'pix'}
           paymentId={order.paymentId || undefined}
           cardError={erro === 'cartao'}
+          viewToken={pedidoToken(order.id)}
         />
       </div>
     </PageShell>

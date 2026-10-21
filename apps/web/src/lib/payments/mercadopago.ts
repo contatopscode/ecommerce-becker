@@ -7,6 +7,7 @@
 import 'server-only';
 import { MercadoPagoConfig, Payment, Preference } from 'mercadopago';
 import { prisma } from '@becker/db';
+import { pedidoToken } from '@/lib/auth/pedido-link';
 
 type PaymentStatusValue = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 
@@ -237,7 +238,7 @@ export async function createPreference(input: {
           email: input.customer.email || `cliente+${input.orderId.slice(0, 8)}@becker.com.br`,
         },
         back_urls: {
-          success: `${siteUrl}/pedido/${input.orderId}?status=approved`,
+          success: `${siteUrl}/pedido/${input.orderId}?status=approved&t=${encodeURIComponent(pedidoToken(input.orderId))}`,
           failure: `${siteUrl}/checkout/pagamento?orderId=${input.orderId}&status=failure`,
           pending: `${siteUrl}/checkout/pagamento?orderId=${input.orderId}&status=pending`,
         },
