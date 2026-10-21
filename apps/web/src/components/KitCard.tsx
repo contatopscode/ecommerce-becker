@@ -81,14 +81,20 @@ export function KitCard({ kit }: KitCardProps) {
             ⭐ Destaque
           </span>
         )}
-        <span className="bg-eco-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-soft">
-          -{kit.discountPercent}% OFF
-        </span>
+        {kit.discountPercent > 0 && (
+          <span className="bg-eco-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-soft">
+            -{kit.discountPercent}% OFF
+          </span>
+        )}
       </div>
 
       {/* Imagem / Hero */}
       <div className="aspect-square bg-gradient-to-br from-becker-purple/10 to-becker-orange/10 grid place-items-center relative overflow-hidden">
-        <div className="text-8xl">{emoji}</div>
+        {kit.image ? (
+          <img src={kit.image} alt={kit.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="text-8xl">{emoji}</div>
+        )}
         <div className="absolute bottom-2 right-2 bg-white/90 text-becker-slate text-[10px] font-bold px-2 py-1 rounded-full">
           {label}
         </div>

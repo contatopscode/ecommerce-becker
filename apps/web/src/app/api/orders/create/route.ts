@@ -42,6 +42,13 @@ export async function POST(req: NextRequest) {
     };
     const safeShippingMethod = shippingMap[shipping?.id] || 'free';
 
+    // Validar quantidades
+    for (const i of items as Array<{ qty?: unknown }>) {
+      if (typeof i.qty !== 'number' || !Number.isInteger(i.qty) || i.qty < 1 || i.qty > 99) {
+        return NextResponse.json({ ok: false, error: 'Quantidade inválida' }, { status: 400 });
+      }
+    }
+
     // Calcular totais
     // SPRINT 11: Suporte a kits (item.isKit = true, versionId = "kit-{slug}")
     const regularVersionIds = items
@@ -54,13 +61,13 @@ export async function POST(req: NextRequest) {
     const [versions, kits] = await Promise.all([
       regularVersionIds.length > 0
         ? prisma.productVersion.findMany({
-            where: { id: { in: regularVersionIds } },
+            where: { id: { in: regularVersionIds }, active: true, product: { active: true } },
             include: { product: true },
           })
         : Promise.resolve([]),
       kitSlugs.length > 0
         ? prisma.kit.findMany({
-            where: { slug: { in: kitSlugs } },
+            where: { slug: { in: kitSlugs }, isActive: true },
             include: { items: true },
           })
         : Promise.resolve([]),
@@ -80,8 +87,13 @@ export async function POST(req: NextRequest) {
         // Item é um kit
         const kitSlug = item.versionId?.replace(/^kit-/, '');
         const kit = kMap.get(kitSlug);
-        if (!kit) continue;
+        if (!kit) {
+          return NextResponse.json({ ok: false, error: 'Kit indisponível' }, { status: 400 });
+        }
         const price = Number(kit.price);
+        if (!(price > 0)) {
+          return NextResponse.json({ ok: false, error: 'Kit indisponível' }, { status: 400 });
+        }
         const total = price * item.qty;
         subtotal += total;
 
@@ -112,8 +124,16 @@ export async function POST(req: NextRequest) {
       } else {
         // Item regular
         const v = vMap.get(item.versionId);
-        if (!v) continue;
+        if (!v) {
+          return NextResponse.json({ ok: false, error: 'Produto indisponível' }, { status: 400 });
+        }
         const price = Number(v.price);
+        if (!(price > 0)) {
+          return NextResponse.json({ ok: false, error: `Produto indisponível: ${v.product.name}` }, { status: 400 });
+        }
+        if (v.stock < item.qty) {
+          return NextResponse.json({ ok: false, error: `Estoque insuficiente: ${v.product.name}` }, { status: 400 });
+        }
         const total = price * item.qty;
         subtotal += total;
         orderItemsData.push({

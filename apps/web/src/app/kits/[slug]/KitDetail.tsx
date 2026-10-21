@@ -118,10 +118,16 @@ export function KitDetail({ kit }: KitDetailProps) {
               ⭐ Destaque
             </span>
           )}
-          <span className="absolute top-5 right-5 bg-eco-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-pop z-10">
-            -{kit.discountPercent}% OFF
-          </span>
-          <div className="text-[180px]">{emoji}</div>
+          {kit.discountPercent > 0 && (
+            <span className="absolute top-5 right-5 bg-eco-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-pop z-10">
+              -{kit.discountPercent}% OFF
+            </span>
+          )}
+          {kit.image ? (
+            <img src={kit.image} alt={kit.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-[180px]">{emoji}</div>
+          )}
         </div>
 
         {/* Info */}

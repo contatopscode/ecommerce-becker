@@ -7,11 +7,39 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { Footer } from '@/components/Footer';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { ProductCard } from '@/components/ProductCard';
+import { KitCard } from '@/components/KitCard';
 import { fetchProducts, fetchCategories } from '@/lib/products';
+import { ensureKitsSeeded } from '@/lib/ensure-kits-seeded';
+import { prisma } from '@becker/db';
 
 export const dynamic = 'force-dynamic'; // ISR: revalidar a cada 60s
 
+async function fetchActiveKits() {
+  await ensureKitsSeeded();
+  const kits = await prisma.kit.findMany({
+    where: { isActive: true },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    include: { _count: { select: { items: true } } },
+  });
+  return kits.map((k) => ({
+    id: k.id,
+    slug: k.slug,
+    name: k.name,
+    shortDescription: k.shortDescription,
+    description: k.description,
+    category: k.category,
+    image: k.image,
+    price: Number(k.price),
+    originalPrice: Number(k.originalPrice),
+    discountPercent: k.discountPercent,
+    isFeatured: k.isFeatured,
+    itemCount: k._count.items,
+  }));
+}
+
 export default async function HomePage() {
+  const kits = await fetchActiveKits();
+  const heroKit = kits[0];
   const [categories, topProducts, featured, eco] = await Promise.all([
     fetchCategories(),
     fetchProducts({ isTop: true, take: 8 }),
@@ -46,7 +74,7 @@ export default async function HomePage() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/categoria/todos"
+                href="/kits"
                 className="bg-becker-orange hover:brightness-95 transition text-white font-semibold px-6 py-3.5 rounded-full shadow-pop inline-flex items-center gap-2"
               >
                 Comprar agora
@@ -70,8 +98,8 @@ export default async function HomePage() {
                 <div className="text-xs text-white/70">anos de mercado</div>
               </div>
               <div>
-                <div className="display text-3xl font-extrabold">{topProducts.length * 5}+</div>
-                <div className="text-xs text-white/70">produtos</div>
+                <div className="display text-3xl font-extrabold">{kits.length}</div>
+                <div className="text-xs text-white/70">{kits.length === 1 ? 'kit' : 'kits'}</div>
               </div>
               <div>
                 <div className="display text-3xl font-extrabold">4.9★</div>
@@ -82,6 +110,25 @@ export default async function HomePage() {
 
           <div className="relative">
             <div className="grid grid-cols-2 gap-4">
+              {!heroProduct && heroKit && (
+                <Link
+                  href={`/kits/${heroKit.slug}`}
+                  className="product-img rounded-3xl p-4 aspect-[3/4] col-span-2 flex flex-col justify-between shadow-pop ring-soft overflow-hidden"
+                >
+                  <span className="inline-flex w-fit items-center gap-1 bg-becker-orange text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full z-10">
+                    Kit
+                  </span>
+                  <div className="flex-1 grid place-items-center py-2">
+                    {heroKit.image && (
+                      <img src={heroKit.image} alt={heroKit.name} className="max-h-full max-w-full object-contain" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="display font-bold text-becker-ink line-clamp-2">{heroKit.name}</div>
+                    <div className="text-sm text-becker-slate line-clamp-1">{heroKit.shortDescription}</div>
+                  </div>
+                </Link>
+              )}
               {heroProduct && (
                 <Link
                   href={`/produto/${heroProduct.slug}`}
@@ -187,22 +234,24 @@ export default async function HomePage() {
                 Combo da semana
               </span>
               <h3 className="display text-3xl lg:text-4xl font-extrabold leading-tight mb-3">
-                Lava Roupas + Amaciante com <span className="text-becker-orange">25% off</span>
+                {heroKit ? heroKit.name : 'Kits Becker'}
               </h3>
-              <p className="text-white/80 mb-6">Garanta o combo completo Becker.</p>
-              <Link href="/categoria/lava-roupas" className="inline-flex items-center gap-2 bg-white text-becker-purple font-semibold px-5 py-3 rounded-full hover:bg-becker-cream transition">
+              <p className="text-white/80 mb-6">
+                {heroKit ? heroKit.description : 'Garanta o combo completo Becker.'}
+              </p>
+              <Link href={heroKit ? `/kits/${heroKit.slug}` : '/kits'} className="inline-flex items-center gap-2 bg-white text-becker-purple font-semibold px-5 py-3 rounded-full hover:bg-becker-cream transition">
                 Aproveitar →
               </Link>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-3xl bg-eco-500 text-white p-8">
+          {eco.length > 0 && <div className="relative overflow-hidden rounded-3xl bg-eco-500 text-white p-8">
             <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase mb-4">Linha Eco</span>
             <h3 className="display text-2xl font-extrabold mb-3">100% energia renovável</h3>
             <p className="text-white/85 text-sm mb-6">Sabão vegetal + energia solar.</p>
             <Link href="/categoria/eco" className="inline-flex items-center gap-2 bg-white text-eco-600 font-semibold px-5 py-3 rounded-full">
               Conhecer →
             </Link>
-          </div>
+          </div>}
         </div>
       </section>
 
@@ -210,21 +259,25 @@ export default async function HomePage() {
       <section className="max-w-7xl mx-auto px-4 py-14">
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
-            <p className="text-becker-orange font-semibold text-sm uppercase tracking-widest">Mais vendidos</p>
-            <h2 className="display text-3xl lg:text-4xl font-extrabold mt-1">Top da semana</h2>
+            <p className="text-becker-orange font-semibold text-sm uppercase tracking-widest">
+              {topProducts.length > 0 ? 'Mais vendidos' : 'Em destaque'}
+            </p>
+            <h2 className="display text-3xl lg:text-4xl font-extrabold mt-1">
+              {topProducts.length > 0 ? 'Top da semana' : 'Kits Becker'}
+            </h2>
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {topProducts.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+          {topProducts.length > 0
+            ? topProducts.map((p) => <ProductCard key={p.id} product={p} />)
+            : kits.map((k) => <KitCard key={k.id} kit={k} />)}
         </div>
         <div className="text-center mt-10">
           <Link
-            href="/categoria/todos"
+            href={topProducts.length > 0 ? '/categoria/todos' : '/kits'}
             className="inline-flex items-center gap-2 border-2 border-becker-purple text-becker-purple hover:bg-becker-purple hover:text-white font-semibold px-6 py-3 rounded-full transition"
           >
-            Ver todos os produtos
+            {topProducts.length > 0 ? 'Ver todos os produtos' : 'Ver todos os kits'}
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}>
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>

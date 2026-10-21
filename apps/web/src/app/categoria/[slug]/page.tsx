@@ -82,6 +82,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             <Link href="/" className="inline-block bg-becker-purple text-white font-semibold px-5 py-2.5 rounded-full">
               Voltar à home
             </Link>
+            <p className="text-becker-slate mt-4 text-sm">
+              Conheça nossos <Link href="/kits" className="text-becker-purple font-semibold hover:underline">kits Becker</Link>.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
