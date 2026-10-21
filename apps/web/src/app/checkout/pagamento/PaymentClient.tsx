@@ -14,6 +14,8 @@ interface PaymentClientProps {
   cardError?: boolean;
   /** Token do link (null quando o acesso é por sessão). Só é usado para provar acesso ao próprio pedido. */
   viewToken: string | null;
+  /** Simulação só existe em sandbox (decidido no servidor). */
+  simulationEnabled: boolean;
 }
 
 /**
@@ -25,7 +27,7 @@ interface PaymentClientProps {
  */
 const withToken = (path: string, token: string | null) => (token ? `${path}${path.includes('?') ? '&' : '?'}t=${encodeURIComponent(token)}` : path);
 
-export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError, viewToken }: PaymentClientProps) {
+export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paymentId, cardError, viewToken, simulationEnabled }: PaymentClientProps) {
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState(false);
   const [pixData] = useState<{
@@ -101,8 +103,13 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
       const res = await fetch('/api/orders/simulate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, method: paymentMethod, t: viewToken }),
+        body: JSON.stringify({ orderId, method: paymentMethod }),
       });
+      if (res.status === 404) {
+        toast('Simulação indisponível', 'error');
+        setPaying(false);
+        return;
+      }
       const data = await res.json();
       if (data.ok) {
         setPaid(true);
@@ -146,7 +153,7 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
         </div>
 
         {paymentMethod === 'pix'
-          ? <PixPayment total={total} orderNumber={orderNumber} paymentId={paymentId} pixData={pixData} onSimulate={simulatePayment} paying={paying} />
+          ? <PixPayment total={total} orderNumber={orderNumber} paymentId={paymentId} pixData={pixData} onSimulate={simulatePayment} paying={paying} simulationEnabled={simulationEnabled} />
           : <CardPayment total={total} orderId={orderId} viewToken={viewToken} cardError={cardError} />}
 
         {/* Info de pagamento via Mercado Pago */}
@@ -168,13 +175,14 @@ export function PaymentClient({ orderId, orderNumber, total, paymentMethod, paym
   );
 }
 
-function PixPayment({ total, paymentId, pixData, onSimulate, paying }: {
+function PixPayment({ total, paymentId, pixData, onSimulate, paying, simulationEnabled }: {
   total: number;
   orderNumber: string;
   paymentId?: string;
   pixData: { qr_code: string; qr_code_base64: string; expiration_date?: string } | null;
   onSimulate: () => void;
   paying: boolean;
+  simulationEnabled: boolean;
 }) {
   // Se não tem pixData mas tem paymentId, mostra placeholder
   // (em produção, viria via webhook ou seria persistido no DB)
@@ -221,7 +229,7 @@ function PixPayment({ total, paymentId, pixData, onSimulate, paying }: {
         )}
 
         {/* Fallback simular (se MP não configurado) */}
-        {!paymentId && (
+        {!paymentId && simulationEnabled && (
           <div className="mt-4 pt-4 border-t-2 border-dashed border-amber-300 bg-amber-50 -mx-6 -mb-6 px-6 py-4 rounded-b-2xl w-full">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🧪</span>

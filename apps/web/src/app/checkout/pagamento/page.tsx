@@ -47,6 +47,7 @@ export default async function CheckoutPaymentPage({ searchParams }: { searchPara
           paymentId={order.paymentId || undefined}
           cardError={erro === 'cartao'}
           viewToken={viewToken}
+          simulationEnabled={process.env.MERCADOPAGO_SANDBOX === 'true'}
         />
       </div>
     </PageShell>
