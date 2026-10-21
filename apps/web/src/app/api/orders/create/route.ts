@@ -11,6 +11,7 @@ import { getActiveProvider, mercadopagoLib } from '@/lib/payments';
 import { verificarCupom, calcularDesconto } from '@/lib/cupom';
 import { markAsConverted } from '@/lib/cart-recovery';
 import { createCardPaymentForOrder } from '@/lib/payments/order-preference';
+import { pedidoToken } from '@/lib/auth/pedido-link';
 
 function genOrderNumber() {
   const now = new Date();
@@ -339,6 +340,8 @@ export async function POST(req: NextRequest) {
       ok: true,
       orderId: order.id,
       orderNumber: order.number,
+      // Único momento em que o token chega ao cliente (quem criou o pedido); nenhuma rota o reemite a partir do id
+      viewToken: pedidoToken(order.id),
       payment,
     });
   } catch (e: unknown) {

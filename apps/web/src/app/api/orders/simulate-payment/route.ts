@@ -7,14 +7,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
 import { notifyOrder } from '@/lib/notify';
+import { canAccessOrderId } from '@/lib/auth/pedido-guard';
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, method } = await req.json();
-    if (!orderId) {
+    const { orderId, method, t } = await req.json();
+    if (!orderId || typeof orderId !== 'string') {
       return NextResponse.json({ ok: false, error: 'orderId obrigatório' }, { status: 400 });
     }
 
+    if (!(await canAccessOrderId(orderId, typeof t === 'string' ? t : null))) {
+      return NextResponse.json({ ok: false, error: 'Pedido não encontrado' }, { status: 404 });
+    }
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) {
       return NextResponse.json({ ok: false, error: 'Pedido não encontrado' }, { status: 404 });
