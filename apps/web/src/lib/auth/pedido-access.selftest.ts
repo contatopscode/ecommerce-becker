@@ -1,7 +1,14 @@
 // Selftest sem dependências: node --experimental-strip-types pedido-access.selftest.ts
 import assert from 'node:assert/strict';
 import { canonicalPhone, phonesMatch, canViewOrder } from './pedido-access.ts';
-import { signPedidoCookie, verifyPedidoCookie, pedidoCookiePath } from './pedido-cookie.ts';
+import {
+  signPedidoCookie,
+  verifyPedidoCookie,
+  pedidoCookiePath,
+  pedidoPagamentoCookieName,
+  pagamentoCookieAutoriza,
+  PEDIDO_PAGAMENTO_COOKIE_PATH,
+} from './pedido-cookie.ts';
 import { isValidCnpj } from '../cnpj.ts';
 import { sanitizeUrlForAnalytics, isOrderPath } from '../analytics-url.ts';
 import { signPedidoToken as sp, verifyPedidoToken as vp } from './pedido-token.ts';
@@ -63,6 +70,23 @@ cases.push(
   }],
   ['cookie com segredo diferente: negado', () => assert.equal(verifyPedidoCookie('outro-segredo-com-mais-de-32-caracteres-x', signPedidoCookie(SECRET, 'o2')), null)],
   ['cookie só vale no caminho do pedido', () => assert.equal(pedidoCookiePath('o2'), '/pedido/o2')],
+  ['cookie de pagamento: nome inclui o id e path é "/"', () => {
+    assert.equal(pedidoPagamentoCookieName('o2'), 'pedido_pg_o2');
+    assert.notEqual(pedidoPagamentoCookieName('o1'), pedidoPagamentoCookieName('o2'));
+    assert.equal(PEDIDO_PAGAMENTO_COOKIE_PATH, '/');
+  }],
+  ['cookie de pagamento do pedido A não autoriza o pedido B', () => {
+    const a = signPedidoCookie(SECRET, 'o1');
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o1', a), true);
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o2', a), false);
+    assert.equal(canViewOrder(owned, null, pagamentoCookieAutoriza(SECRET, 'o2', a) ? 'o2' : null), false);
+  }],
+  ['cookie de pagamento: ausente, expirado, ?t= e lixo negados', () => {
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o2', undefined), false);
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o2', signPedidoCookie(SECRET, 'o2', -1)), false);
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o2', signPedidoToken('o2')), false);
+    assert.equal(pagamentoCookieAutoriza(SECRET, 'o2', 'lixo'), false);
+  }],
   ['CNPJ válido (com e sem máscara)', () => {
     assert.ok(isValidCnpj('11.222.333/0001-81'));
     assert.ok(isValidCnpj('11222333000181'));

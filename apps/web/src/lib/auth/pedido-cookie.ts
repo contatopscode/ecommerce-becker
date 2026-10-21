@@ -23,3 +23,16 @@ export function signPedidoCookie(secret: string, orderId: string, maxAgeSec: num
 export function verifyPedidoCookie(secret: string, value: string | undefined | null): string | null {
   return verifyPedidoToken(cookieSecret(secret), value);
 }
+
+// Cookie de pagamento: path '/' (vale para /checkout/pagamento e /api/orders/*), mas o NOME inclui o id,
+// então o navegador só o envia como "deste pedido" e o servidor confere nome e valor.
+export const PEDIDO_PAGAMENTO_COOKIE_PATH = '/';
+
+export function pedidoPagamentoCookieName(orderId: string): string {
+  return `pedido_pg_${orderId}`;
+}
+
+/** true se o valor é um cookie válido do pedido `orderId` (o id assinado precisa ser exatamente o do nome). */
+export function pagamentoCookieAutoriza(secret: string, orderId: string, value: string | undefined | null): boolean {
+  return verifyPedidoCookie(secret, value) === orderId;
+}
