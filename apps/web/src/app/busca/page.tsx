@@ -4,6 +4,8 @@
 
 import { PageShell } from '@/components/PageShell';
 import { ProductCard } from '@/components/ProductCard';
+import { KitCard } from '@/components/KitCard';
+import { fetchActiveKits } from '@/lib/kits';
 import { fetchProducts, fetchCategories } from '@/lib/products';
 import { SearchFilters } from './SearchFilters';
 import Link from 'next/link';
@@ -21,8 +23,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   ordem?: string;
 }> }) {
   const params = await searchParams;
+  const q = (params.q ?? '').slice(0, 100);
   const {
-    q = '',
     categoria,
     eco, top, novo,
     precoMin, precoMax,
@@ -60,6 +62,18 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     });
   }
 
+  // Kits são produtos: aparecem na busca (não têm flags eco/top/novo)
+  const kitsAllowed = eco !== '1' && top !== '1' && novo !== '1';
+  const kits = kitsAllowed
+    ? await fetchActiveKits({
+        search: q || undefined,
+        category: categoria && categoria !== 'todos' ? categoria : undefined,
+        minPrice: precoMin ? Number(precoMin) : undefined,
+        maxPrice: precoMax ? Number(precoMax) : undefined,
+      })
+    : [];
+  const totalResults = filtered.length + kits.length;
+
   return (
     <PageShell>
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -70,9 +84,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {q ? <>Resultados para <span className="text-becker-purple">&quot;{q}&quot;</span></> : 'Todos os produtos'}
         </h1>
         <p className="text-becker-slate mb-6">
-          {filtered.length === 0
+          {totalResults === 0
             ? 'Nenhum resultado com esses filtros'
-            : `${filtered.length} ${filtered.length === 1 ? 'produto' : 'produtos'}`}
+            : `${totalResults} ${totalResults === 1 ? 'produto' : 'produtos'}${kits.length > 0 ? ` (${kits.length} ${kits.length === 1 ? 'kit' : 'kits'})` : ''}`}
         </p>
 
         <div className="grid lg:grid-cols-4 gap-6">
@@ -92,7 +106,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
           {/* Resultados */}
           <div className="lg:col-span-3">
-            {filtered.length === 0 ? (
+            {totalResults === 0 ? (
               <div className="text-center py-20 bg-white rounded-2xl border border-becker-line">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="display text-xl font-bold mb-2">Nada encontrado</h3>
@@ -109,6 +123,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {kits.map((k) => <KitCard key={`kit-${k.id}`} kit={k} />)}
                 {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
               </div>
             )}

@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@becker/db';
+import { fetchActiveKits } from '@/lib/kits';
 import { checkRateLimit, LIMITS } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
@@ -12,11 +13,11 @@ export async function GET(req: NextRequest) {
   const limited = checkRateLimit(req, LIMITS.SEARCH);
   if (limited) return limited;
 
-  const q = (req.nextUrl.searchParams.get('q') || '').trim();
-  const limit = parseInt(req.nextUrl.searchParams.get('limit') || '8');
+  const q = (req.nextUrl.searchParams.get('q') || '').trim().slice(0, 100);
+  const limit = Math.min(Math.max(Number.parseInt(req.nextUrl.searchParams.get('limit') || '8', 10) || 8, 1), 20);
 
   if (q.length < 2) {
-    return NextResponse.json({ ok: true, products: [], categories: [], total: 0 });
+    return NextResponse.json({ ok: true, products: [], kits: [], categories: [], total: 0 });
   }
 
   try {
@@ -41,6 +42,9 @@ export async function GET(req: NextRequest) {
       take: limit,
     });
 
+    // Kits ativos que combinam (kit é produto)
+    const kits = await fetchActiveKits({ search: q, take: limit });
+
     // Buscar categorias que combinam
     const categories = await prisma.category.findMany({
       where: {
@@ -64,8 +68,16 @@ export async function GET(req: NextRequest) {
         image: p.images[0]?.url || null,
         price: p.versions[0] ? Number(p.versions[0].price) : null,
       })),
+      kits: kits.map((k) => ({
+        id: k.id,
+        slug: k.slug,
+        name: k.name,
+        shortDescription: k.shortDescription,
+        image: k.image,
+        price: k.price,
+      })),
       categories,
-      total: products.length + categories.length,
+      total: products.length + kits.length + categories.length,
     });
   } catch (e: unknown) {
     console.error('[search] Erro:', e);

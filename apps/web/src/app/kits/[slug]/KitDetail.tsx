@@ -67,7 +67,7 @@ export function KitDetail({ kit }: KitDetailProps) {
       originalPrice: kit.originalPrice,
       stock: 99,
       isKit: true,
-    } as Parameters<typeof cart.add>[0]);
+    });
     toast(`🎁 ${kit.name} adicionado ao carrinho!`, 'success');
   };
 

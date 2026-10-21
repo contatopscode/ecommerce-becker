@@ -5,6 +5,7 @@
 
 import { prisma } from '@becker/db';
 import { TrackingTimeline } from './TrackingTimeline';
+import { kitImageSrc } from '@/lib/kits';
 import { PageShell } from '@/components/PageShell';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       </PageShell>
     );
   }
+
+  // OrderItem não guarda foto: busca a imagem dos kits vendidos pelo kitId
+  const kitIds = order.items.flatMap((i) => (i.kitId ? [i.kitId] : []));
+  const kitRows = kitIds.length > 0
+    ? await prisma.kit.findMany({ where: { id: { in: kitIds } }, select: { id: true, slug: true, image: true } })
+    : [];
+  const kitById = new Map(kitRows.map((k) => [k.id, k]));
 
   return (
     <PageShell>
@@ -56,9 +64,20 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <div className="space-y-3">
             {order.items.map((item) => (
               <div key={item.id} className="flex justify-between items-start gap-3 py-2 border-b border-becker-line last:border-0">
-                <div>
-                  <div className="font-semibold">{item.productName}</div>
-                  <div className="text-xs text-becker-slate">{item.versionLabel} • {item.qty}x</div>
+                <div className="flex items-start gap-3">
+                  {item.kitId && (
+                    <div className="w-14 h-14 rounded-lg bg-becker-cream grid place-items-center overflow-hidden shrink-0">
+                      {kitImageSrc(kitById.get(item.kitId)?.image) ? (
+                        <img src={kitImageSrc(kitById.get(item.kitId)?.image) ?? ''} alt={item.productName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl">🎁</span>
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold">{item.productName}</div>
+                    <div className="text-xs text-becker-slate">{item.versionLabel} • {item.qty}x</div>
+                  </div>
                 </div>
                 <div className="font-bold text-right">
                   R$ {Number(item.total).toFixed(2)}

@@ -899,7 +899,11 @@ export default function CheckoutPageContent() {
                   {cart.items.map((item) => (
                     <div key={`${item.productId}-${item.versionId}`} className="flex gap-2 text-sm">
                       <div className="w-12 h-12 bg-becker-cream rounded-lg grid place-items-center overflow-hidden p-0.5">
-                        {item.image && <img src={item.image} alt="" className="max-h-full" />}
+                        {item.image ? (
+                          <img src={item.image} alt={item.name || ""} className="max-h-full" />
+                        ) : (
+                          <span className="text-xl">{item.isKit ? "🎁" : "📦"}</span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold line-clamp-1">{item.name}</div>

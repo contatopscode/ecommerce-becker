@@ -38,7 +38,7 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-3">
           {items.map((item) => (
             <div key={`${item.productId}-${item.versionId}`} className="bg-white rounded-2xl border border-becker-line p-4 flex gap-4">
-              <Link href={`/produto/${item.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-becker-purple-soft grid place-items-center shrink-0 overflow-hidden p-1">
+              <Link href={item.isKit ? `/kits/${item.slug}` : `/produto/${item.slug}`} className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-becker-purple-soft grid place-items-center shrink-0 overflow-hidden p-1">
                 {item.image ? (
                   <img src={item.image} alt={item.name} className="max-h-full max-w-full object-contain" />
                 ) : (
@@ -47,7 +47,7 @@ export default function CartPage() {
               </Link>
               <div className="flex-1 min-w-0">
                 <div className="text-[11px] text-becker-slate uppercase font-semibold">{item.versionLabel}</div>
-                <Link href={`/produto/${item.slug}`} className="font-semibold hover:text-becker-purple block truncate">
+                <Link href={item.isKit ? `/kits/${item.slug}` : `/produto/${item.slug}`} className="font-semibold hover:text-becker-purple block truncate">
                   {item.name}
                 </Link>
                 <div className="text-xs text-becker-slate">{formatPrice(item.price || 0)} cada</div>
